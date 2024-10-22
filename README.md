@@ -1,16 +1,21 @@
-# tour_buddy
+# Tour Buddy
 
-A new Flutter project.
+Tour Buddy is a Flutter application that helps users manage their expenses efficiently. Users can add, view, and reset their expenses, with a user-friendly interface.
 
-## Getting Started
+## Features
 
-This project is a starting point for a Flutter application.
+- Add expenses with a title and amount.
+- View total expenses in the app.
+- Reset all expenses.
+- Toggle between light and dark themes.
+- Save expenses persistently using Shared Preferences.
 
-A few resources to get you started if this is your first Flutter project:
+## Screenshots
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+![App Screenshot](path_to_your_screenshot.png) <!-- Optional -->
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/tour_buddy.git
