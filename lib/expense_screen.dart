@@ -12,6 +12,15 @@ class ExpenseScreen extends StatefulWidget {
 }
 
 class _ExpenseScreenState extends State<ExpenseScreen> {
+  List<String> categories = [
+    'Food',
+    'Transport',
+    'Accommodation',
+    'Shopping',
+    'Activities',
+    'Other'
+  ];
+  String selectedCategory = 'Food';
   List<Map<String, dynamic>> expenses = [];
   String title = 'Expenses';
   final TextEditingController _expenseTitleController = TextEditingController();
@@ -46,6 +55,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
       'title': title,
       'amount': amount,
       'date': "${now.year}-${now.month}-${now.day} ${now.hour}:${now.minute}",
+      'category': selectedCategory,
     });
 
     saveExpenses();
