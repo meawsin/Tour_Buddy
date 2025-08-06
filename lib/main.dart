@@ -15,19 +15,21 @@ void main() async {
         ChangeNotifierProvider(
             create: (_) => TripProvider()), // Provide TripProvider
       ],
-      child: MyApp(),
+      child: const MyApp(),
     ),
   );
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Tour Buddy',
       theme: Provider.of<ThemeProvider>(context).themeData,
-      home: StartScreen(), // Set StartScreen as the home
+      home: const StartScreen(), // Set StartScreen as the home
     );
   }
 }

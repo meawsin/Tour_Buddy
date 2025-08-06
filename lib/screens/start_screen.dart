@@ -5,6 +5,8 @@ import '../models/trip.dart';
 import 'expense_screen.dart';
 
 class StartScreen extends StatefulWidget {
+  const StartScreen({super.key});
+
   @override
   _StartScreenState createState() => _StartScreenState();
 }
@@ -13,7 +15,7 @@ class _StartScreenState extends State<StartScreen> {
   final TextEditingController _tripNameController = TextEditingController();
   final TextEditingController _tripBudgetController = TextEditingController();
   DateTime _selectedStartDate = DateTime.now();
-  DateTime _selectedEndDate = DateTime.now().add(Duration(days: 7));
+  DateTime _selectedEndDate = DateTime.now().add(const Duration(days: 7));
 
   Future<void> _selectDate(BuildContext context, bool isStartDate) async {
     final DateTime? picked = await showDatePicker(
@@ -27,12 +29,13 @@ class _StartScreenState extends State<StartScreen> {
         if (isStartDate) {
           _selectedStartDate = picked;
           if (_selectedEndDate.isBefore(_selectedStartDate)) {
-            _selectedEndDate = _selectedStartDate.add(Duration(days: 7));
+            _selectedEndDate = _selectedStartDate.add(const Duration(days: 7));
           }
         } else {
           _selectedEndDate = picked;
           if (_selectedStartDate.isAfter(_selectedEndDate)) {
-            _selectedStartDate = _selectedEndDate.subtract(Duration(days: 7));
+            _selectedStartDate =
+                _selectedEndDate.subtract(const Duration(days: 7));
           }
         }
       });
@@ -45,11 +48,11 @@ class _StartScreenState extends State<StartScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Tour Buddy - Your Trips'),
+        title: const Text('Tour Buddy - Your Trips'),
         centerTitle: true,
       ),
       body: tripProvider.trips.isEmpty
-          ? Center(
+          ? const Center(
               child: Text(
                 'No trips yet! Start by adding a new trip below.',
                 style: TextStyle(fontSize: 18),
@@ -63,21 +66,22 @@ class _StartScreenState extends State<StartScreen> {
                 double totalExpense =
                     trip.expenses.fold(0, (sum, item) => sum + item['amount']);
                 return Card(
-                  margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   elevation: 4,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                   child: ListTile(
-                    contentPadding: EdgeInsets.all(16),
+                    contentPadding: const EdgeInsets.all(16),
                     title: Text(
                       trip.name,
-                      style:
-                          TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                          fontSize: 20, fontWeight: FontWeight.bold),
                     ),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SizedBox(height: 4),
+                        const SizedBox(height: 4),
                         Text(
                             'Dates: ${trip.startDate.toLocal().toString().split(' ')[0]} to ${trip.endDate.toLocal().toString().split(' ')[0]}'),
                         Text(
@@ -87,7 +91,7 @@ class _StartScreenState extends State<StartScreen> {
                       ],
                     ),
                     trailing: IconButton(
-                      icon: Icon(Icons.delete, color: Colors.redAccent),
+                      icon: const Icon(Icons.delete, color: Colors.redAccent),
                       onPressed: () {
                         _showDeleteConfirmationDialog(
                             context, tripProvider, trip);
@@ -107,8 +111,8 @@ class _StartScreenState extends State<StartScreen> {
             ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddTripDialog(context, tripProvider),
-        label: Text('Add New Trip'),
-        icon: Icon(Icons.add),
+        label: const Text('Add New Trip'),
+        icon: const Icon(Icons.add),
       ),
     );
   }
@@ -117,13 +121,13 @@ class _StartScreenState extends State<StartScreen> {
     _tripNameController.clear();
     _tripBudgetController.clear();
     _selectedStartDate = DateTime.now();
-    _selectedEndDate = DateTime.now().add(Duration(days: 7));
+    _selectedEndDate = DateTime.now().add(const Duration(days: 7));
 
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text("Create New Trip"),
+          title: const Text("Create New Trip"),
           content: StatefulBuilder(
             builder: (BuildContext context, StateSetter setState) {
               return SingleChildScrollView(
@@ -132,41 +136,41 @@ class _StartScreenState extends State<StartScreen> {
                   children: [
                     TextField(
                       controller: _tripNameController,
-                      decoration: InputDecoration(labelText: 'Trip Name'),
+                      decoration: const InputDecoration(labelText: 'Trip Name'),
                     ),
                     TextField(
                       controller: _tripBudgetController,
                       decoration:
-                          InputDecoration(labelText: 'Budget (Optional)'),
+                          const InputDecoration(labelText: 'Budget (Optional)'),
                       keyboardType: TextInputType.number,
                     ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     Row(
                       children: [
                         Text(
                             'Start Date: ${_selectedStartDate.toLocal().toString().split(' ')[0]}'),
-                        Spacer(),
+                        const Spacer(),
                         ElevatedButton(
                           onPressed: () async {
                             await _selectDate(context, true);
                             setState(() {}); // Update dialog state
                           },
-                          child: Text('Select'),
+                          child: const Text('Select'),
                         ),
                       ],
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Row(
                       children: [
                         Text(
                             'End Date: ${_selectedEndDate.toLocal().toString().split(' ')[0]}'),
-                        Spacer(),
+                        const Spacer(),
                         ElevatedButton(
                           onPressed: () async {
                             await _selectDate(context, false);
                             setState(() {}); // Update dialog state
                           },
-                          child: Text('Select'),
+                          child: const Text('Select'),
                         ),
                       ],
                     ),
@@ -180,7 +184,7 @@ class _StartScreenState extends State<StartScreen> {
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: Text("Cancel"),
+              child: const Text("Cancel"),
             ),
             TextButton(
               onPressed: () {
@@ -200,7 +204,7 @@ class _StartScreenState extends State<StartScreen> {
                   );
                 }
               },
-              child: Text("Create"),
+              child: const Text("Create"),
             ),
           ],
         );
@@ -214,20 +218,20 @@ class _StartScreenState extends State<StartScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Delete Trip?'),
+          title: const Text('Delete Trip?'),
           content: Text(
               'Are you sure you want to delete "${trip.name}"? This action cannot be undone.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text('Cancel'),
+              child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () {
                 tripProvider.deleteTrip(trip.id);
                 Navigator.of(context).pop();
               },
-              child: Text('Delete', style: TextStyle(color: Colors.red)),
+              child: const Text('Delete', style: TextStyle(color: Colors.red)),
             ),
           ],
         );

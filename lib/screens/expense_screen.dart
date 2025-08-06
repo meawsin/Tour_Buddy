@@ -10,7 +10,7 @@ import 'compare_trips_screen.dart'; // Import CompareTripsScreen
 class ExpenseScreen extends StatelessWidget {
   final Trip trip; // Pass the trip to display
 
-  ExpenseScreen({required this.trip}); // Constructor to receive trip
+  ExpenseScreen({super.key, required this.trip}); // Constructor to receive trip
 
   final TextEditingController _expenseTitleController = TextEditingController();
   final TextEditingController _expenseAmountController =
@@ -47,7 +47,7 @@ class ExpenseScreen extends StatelessWidget {
         title: Text(trip.name), // Display current trip name
         actions: [
           IconButton(
-            icon: Icon(Icons.share),
+            icon: const Icon(Icons.share),
             onPressed: () {
               _shareTrip(trip);
             },
@@ -58,7 +58,7 @@ class ExpenseScreen extends StatelessWidget {
         child: ListView(
           padding: EdgeInsets.zero,
           children: <Widget>[
-            DrawerHeader(
+            const DrawerHeader(
               decoration: BoxDecoration(color: Colors.blue),
               child: Text(
                 'Tour Buddy',
@@ -70,16 +70,16 @@ class ExpenseScreen extends StatelessWidget {
               ),
             ),
             ListTile(
-              leading: Icon(Icons.toggle_on),
-              title: Text('Switch Theme'),
+              leading: const Icon(Icons.toggle_on),
+              title: const Text('Switch Theme'),
               onTap: () {
                 themeProvider.toggleTheme();
                 Navigator.of(context).pop();
               },
             ),
             ListTile(
-              leading: Icon(Icons.delete),
-              title: Text('Reset Trip Expenses'),
+              leading: const Icon(Icons.delete),
+              title: const Text('Reset Trip Expenses'),
               onTap: () {
                 tripProvider
                     .resetCurrentTripExpenses(); // Reset only current trip's expenses
@@ -87,19 +87,19 @@ class ExpenseScreen extends StatelessWidget {
               },
             ),
             ListTile(
-              leading: Icon(Icons.compare_arrows),
-              title: Text('Compare Trips'),
+              leading: const Icon(Icons.compare_arrows),
+              title: const Text('Compare Trips'),
               onTap: () {
                 Navigator.of(context).pop(); // Close drawer
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => CompareTripsScreen()),
+                  MaterialPageRoute(builder: (context) => const CompareTripsScreen()),
                 );
               },
             ),
             ListTile(
-              leading: Icon(Icons.settings),
-              title: Text('Trip Settings'),
+              leading: const Icon(Icons.settings),
+              title: const Text('Trip Settings'),
               onTap: () {
                 Navigator.of(context).pop(); // Close drawer
                 _showTripSettingsDialog(context, trip);
@@ -116,14 +116,15 @@ class ExpenseScreen extends StatelessWidget {
               children: [
                 Text(
                   'Total Expenses: ${trip.currency}${totalExpense.toStringAsFixed(2)}',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      fontSize: 24, fontWeight: FontWeight.bold),
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 Text(
                   'Budget: ${trip.currency}${trip.budget.toStringAsFixed(2)}',
-                  style: TextStyle(fontSize: 18),
+                  style: const TextStyle(fontSize: 18),
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 LinearProgressIndicator(
                   value: trip.budget > 0 ? totalExpense / trip.budget : 0,
                   backgroundColor: Colors.grey[300],
@@ -133,7 +134,7 @@ class ExpenseScreen extends StatelessWidget {
                   minHeight: 10,
                   borderRadius: BorderRadius.circular(5),
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 Text(
                   totalExpense > trip.budget
                       ? 'Over Budget by: ${trip.currency}${(totalExpense - trip.budget).toStringAsFixed(2)}'
@@ -157,7 +158,7 @@ class ExpenseScreen extends StatelessWidget {
                       '${trip.expenses[index]['date']} - ${trip.expenses[index]['category']}'),
                   trailing: Text(
                       '${trip.currency}${trip.expenses[index]['amount'].toStringAsFixed(2)}',
-                      style: TextStyle(fontSize: 20)),
+                      style: const TextStyle(fontSize: 20)),
                 );
               },
             ),
@@ -169,7 +170,7 @@ class ExpenseScreen extends StatelessWidget {
                 _showAddExpenseDialog(context, tripProvider,
                     trip.currency); // Pass tripProvider and current trip's currency
               },
-              child: Text("Add Expense"),
+              child: const Text("Add Expense"),
             ),
           ),
         ],
@@ -188,7 +189,7 @@ class ExpenseScreen extends StatelessWidget {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text("Add Expense"),
+          title: const Text("Add Expense"),
           content: StatefulBuilder(
             // Use StatefulBuilder to update dropdown and foreign currency
             builder: (BuildContext context, StateSetter setState) {
@@ -198,26 +199,27 @@ class ExpenseScreen extends StatelessWidget {
                   children: [
                     TextField(
                       controller: _expenseTitleController,
-                      decoration: InputDecoration(labelText: 'Expense Title'),
+                      decoration:
+                          const InputDecoration(labelText: 'Expense Title'),
                     ),
                     TextField(
                       controller: _expenseAmountController,
-                      decoration: InputDecoration(
-                          labelText: 'Amount (${tripCurrency})'),
+                      decoration:
+                          InputDecoration(labelText: 'Amount ($tripCurrency)'),
                       keyboardType: TextInputType.number,
                     ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     Row(
                       children: [
                         Expanded(
                           child: TextField(
                             controller: _foreignAmountController,
-                            decoration:
-                                InputDecoration(labelText: 'Amount (Foreign)'),
+                            decoration: const InputDecoration(
+                                labelText: 'Amount (Foreign)'),
                             keyboardType: TextInputType.number,
                           ),
                         ),
-                        SizedBox(width: 8),
+                        const SizedBox(width: 8),
                         DropdownButton<String>(
                           value: _foreignCurrency,
                           onChanged: (String? newValue) {
@@ -243,7 +245,7 @@ class ExpenseScreen extends StatelessWidget {
                         ),
                       ],
                     ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
                       value: selectedCategory,
                       decoration: InputDecoration(
@@ -251,8 +253,8 @@ class ExpenseScreen extends StatelessWidget {
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8.0),
                         ),
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
                       ),
                       onChanged: (String? newValue) {
                         if (newValue != null) {
@@ -279,7 +281,7 @@ class ExpenseScreen extends StatelessWidget {
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: Text("Cancel"),
+              child: const Text("Cancel"),
             ),
             TextButton(
               onPressed: () async {
@@ -320,7 +322,7 @@ class ExpenseScreen extends StatelessWidget {
                   Navigator.of(context).pop();
                 }
               },
-              child: Text("Add"),
+              child: const Text("Add"),
             ),
           ],
         );
@@ -354,11 +356,11 @@ class ExpenseScreen extends StatelessWidget {
 
   void _showTripSettingsDialog(BuildContext context, Trip trip) {
     final tripProvider = Provider.of<TripProvider>(context, listen: false);
-    final TextEditingController _currentBudgetController =
+    final TextEditingController currentBudgetController =
         TextEditingController(text: trip.budget.toStringAsFixed(2));
-    String _selectedCurrency = trip.currency;
-    DateTime _tempStartDate = trip.startDate;
-    DateTime _tempEndDate = trip.endDate;
+    String selectedCurrency = trip.currency;
+    DateTime tempStartDate = trip.startDate;
+    DateTime tempEndDate = trip.endDate;
 
     showDialog(
       context: context,
@@ -372,25 +374,26 @@ class ExpenseScreen extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     TextField(
-                      controller: _currentBudgetController,
-                      decoration: InputDecoration(labelText: 'Trip Budget'),
+                      controller: currentBudgetController,
+                      decoration:
+                          const InputDecoration(labelText: 'Trip Budget'),
                       keyboardType: TextInputType.number,
                     ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                      value: _selectedCurrency,
+                      value: selectedCurrency,
                       decoration: InputDecoration(
                         labelText: 'Trip Currency',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8.0),
                         ),
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
                       ),
                       onChanged: (String? newValue) {
                         if (newValue != null) {
                           setState(() {
-                            _selectedCurrency = newValue;
+                            selectedCurrency = newValue;
                           });
                         }
                       },
@@ -408,59 +411,59 @@ class ExpenseScreen extends StatelessWidget {
                         );
                       }).toList(),
                     ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     Row(
                       children: [
                         Text(
-                            'Start Date: ${_tempStartDate.toLocal().toString().split(' ')[0]}'),
-                        Spacer(),
+                            'Start Date: ${tempStartDate.toLocal().toString().split(' ')[0]}'),
+                        const Spacer(),
                         ElevatedButton(
                           onPressed: () async {
                             final DateTime? picked = await showDatePicker(
                               context: context,
-                              initialDate: _tempStartDate,
+                              initialDate: tempStartDate,
                               firstDate: DateTime(2000),
                               lastDate: DateTime(2101),
                             );
-                            if (picked != null && picked != _tempStartDate) {
+                            if (picked != null && picked != tempStartDate) {
                               setState(() {
-                                _tempStartDate = picked;
-                                if (_tempEndDate.isBefore(_tempStartDate)) {
-                                  _tempEndDate =
-                                      _tempStartDate.add(Duration(days: 7));
+                                tempStartDate = picked;
+                                if (tempEndDate.isBefore(tempStartDate)) {
+                                  tempEndDate = tempStartDate
+                                      .add(const Duration(days: 7));
                                 }
                               });
                             }
                           },
-                          child: Text('Change'),
+                          child: const Text('Change'),
                         ),
                       ],
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Row(
                       children: [
                         Text(
-                            'End Date: ${_tempEndDate.toLocal().toString().split(' ')[0]}'),
-                        Spacer(),
+                            'End Date: ${tempEndDate.toLocal().toString().split(' ')[0]}'),
+                        const Spacer(),
                         ElevatedButton(
                           onPressed: () async {
                             final DateTime? picked = await showDatePicker(
                               context: context,
-                              initialDate: _tempEndDate,
+                              initialDate: tempEndDate,
                               firstDate: DateTime(2000),
                               lastDate: DateTime(2101),
                             );
-                            if (picked != null && picked != _tempEndDate) {
+                            if (picked != null && picked != tempEndDate) {
                               setState(() {
-                                _tempEndDate = picked;
-                                if (_tempStartDate.isAfter(_tempEndDate)) {
-                                  _tempStartDate =
-                                      _tempEndDate.subtract(Duration(days: 7));
+                                tempEndDate = picked;
+                                if (tempStartDate.isAfter(tempEndDate)) {
+                                  tempStartDate = tempEndDate
+                                      .subtract(const Duration(days: 7));
                                 }
                               });
                             }
                           },
-                          child: Text('Change'),
+                          child: const Text('Change'),
                         ),
                       ],
                     ),
@@ -472,19 +475,19 @@ class ExpenseScreen extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text('Cancel'),
+              child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () {
                 tripProvider.updateCurrentTrip(
-                  budget: double.tryParse(_currentBudgetController.text),
-                  currency: _selectedCurrency,
-                  startDate: _tempStartDate,
-                  endDate: _tempEndDate,
+                  budget: double.tryParse(currentBudgetController.text),
+                  currency: selectedCurrency,
+                  startDate: tempStartDate,
+                  endDate: tempEndDate,
                 );
                 Navigator.of(context).pop();
               },
-              child: Text('Save'),
+              child: const Text('Save'),
             ),
           ],
         );

@@ -1,7 +1,39 @@
+// android/build.gradle
+buildscript {
+    ext {
+        // Define compile and target SDK versions here
+        // It's recommended to use the latest stable versions
+        // For example, Flutter 3.x often uses compileSdk 34 or 33
+        compileSdkVersion = 34 // Or the version specified in your flutter.compileSdkVersion
+        targetSdkVersion = 34 // Or the version specified in your flutter.targetSdkVersion
+        minSdkVersion = 21 // Keep this as per your app's minimum requirement
+    }
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.1.0' // Ensure this matches your project's version
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.22" // Ensure this matches your project's version
+    }
+}
+
 allprojects {
     repositories {
         google()
         mavenCentral()
+    }
+    // Add this block to ensure all subprojects inherit SDK versions
+    afterEvaluate { project ->
+        if (project.hasProperty('android')) {
+            android {
+                compileSdkVersion rootProject.ext.compileSdkVersion
+                defaultConfig {
+                    minSdkVersion rootProject.ext.minSdkVersion
+                    targetSdkVersion rootProject.ext.targetSdkVersion
+                }
+            }
+        }
     }
 }
 

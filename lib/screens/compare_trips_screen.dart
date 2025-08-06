@@ -4,6 +4,8 @@ import '../providers/trip_provider.dart';
 import '../models/trip.dart';
 
 class CompareTripsScreen extends StatelessWidget {
+  const CompareTripsScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     final tripProvider = Provider.of<TripProvider>(context);
@@ -15,11 +17,11 @@ class CompareTripsScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Compare Trips'),
+        title: const Text('Compare Trips'),
         centerTitle: true,
       ),
       body: tripsWithExpenses.isEmpty
-          ? Center(
+          ? const Center(
               child: Text(
                 'No trips with expenses to compare yet!',
                 style: TextStyle(fontSize: 18),
@@ -35,7 +37,8 @@ class CompareTripsScreen extends StatelessWidget {
                 double remainingBudget = trip.budget - totalExpense;
 
                 return Card(
-                  margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   elevation: 4,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
@@ -46,16 +49,16 @@ class CompareTripsScreen extends StatelessWidget {
                       children: [
                         Text(
                           trip.name,
-                          style: TextStyle(
+                          style: const TextStyle(
                               fontSize: 22, fontWeight: FontWeight.bold),
                         ),
-                        SizedBox(height: 8),
+                        const SizedBox(height: 8),
                         Text(
                             'Total Expenses: ${trip.currency}${totalExpense.toStringAsFixed(2)}',
-                            style: TextStyle(fontSize: 16)),
+                            style: const TextStyle(fontSize: 16)),
                         Text(
                             'Budget: ${trip.currency}${trip.budget.toStringAsFixed(2)}',
-                            style: TextStyle(fontSize: 16)),
+                            style: const TextStyle(fontSize: 16)),
                         Text(
                           'Remaining Budget: ${trip.currency}${remainingBudget.toStringAsFixed(2)}',
                           style: TextStyle(
@@ -64,9 +67,9 @@ class CompareTripsScreen extends StatelessWidget {
                                   ? Colors.green
                                   : Colors.red),
                         ),
-                        SizedBox(height: 12),
+                        const SizedBox(height: 12),
                         // Optional: Display expenses by category for this trip
-                        Text('Expense Breakdown:',
+                        const Text('Expense Breakdown:',
                             style: TextStyle(fontWeight: FontWeight.bold)),
                         ..._buildCategoryBreakdown(trip),
                       ],
