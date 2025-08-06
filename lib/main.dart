@@ -10,19 +10,21 @@ void main() async {
   runApp(
     ChangeNotifierProvider(
       create: (_) => themeProvider,
-      child: MyApp(),
+      child: const MyApp(),
     ),
   );
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Tour Buddy',
       theme: Provider.of<ThemeProvider>(context).themeData,
-      home: ExpenseScreen(),
+      home: const ExpenseScreen(),
     );
   }
 }

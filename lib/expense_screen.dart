@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
 class ExpenseScreen extends StatefulWidget {
+  const ExpenseScreen({super.key});
+
   @override
   _ExpenseScreenState createState() => _ExpenseScreenState();
 }
@@ -84,7 +86,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
             Expanded(
               child: TextField(
                 controller: TextEditingController(text: title),
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   border: InputBorder.none,
                   hintText: 'Edit Title',
                 ),
@@ -103,7 +105,10 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
         child: ListView(
           padding: EdgeInsets.zero,
           children: <Widget>[
-            DrawerHeader(
+            const DrawerHeader(
+              decoration: BoxDecoration(
+                color: Colors.blue,
+              ),
               child: Text(
                 'Tour Buddy',
                 style: TextStyle(
@@ -112,21 +117,18 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                     fontFamily: 'Comin Sans',
                     fontWeight: FontWeight.bold),
               ),
-              decoration: BoxDecoration(
-                color: Colors.blue,
-              ),
             ),
             ListTile(
-              leading: Icon(Icons.toggle_on),
-              title: Text('Switch Theme'),
+              leading: const Icon(Icons.toggle_on),
+              title: const Text('Switch Theme'),
               onTap: () {
                 themeProvider.toggleTheme();
                 Navigator.of(context).pop();
               },
             ),
             ListTile(
-              leading: Icon(Icons.delete),
-              title: Text('Reset Data'),
+              leading: const Icon(Icons.delete),
+              title: const Text('Reset Data'),
               onTap: () {
                 resetExpenses();
                 Navigator.of(context).pop();
@@ -141,7 +143,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
             padding: const EdgeInsets.all(16.0),
             child: Text(
               'Total: ৳${totalExpense.toStringAsFixed(2)}',
-              style: TextStyle(fontSize: 28),
+              style: const TextStyle(fontSize: 28),
             ),
           ),
           Expanded(
@@ -153,7 +155,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                   subtitle: Text('${expenses[index]['date']}'),
                   trailing: Text(
                       '৳${expenses[index]['amount'].toStringAsFixed(2)}',
-                      style: TextStyle(fontSize: 20)),
+                      style: const TextStyle(fontSize: 20)),
                 );
               },
             ),
@@ -164,7 +166,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
               onPressed: () {
                 _showAddExpenseDialog();
               },
-              child: Text("Add Expense"),
+              child: const Text("Add Expense"),
             ),
           ),
         ],
@@ -177,17 +179,17 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text("Add Expense"),
+          title: const Text("Add Expense"),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: _expenseTitleController,
-                decoration: InputDecoration(labelText: 'Expense Title'),
+                decoration: const InputDecoration(labelText: 'Expense Title'),
               ),
               TextField(
                 controller: _expenseAmountController,
-                decoration: InputDecoration(labelText: 'Amount (৳)'),
+                decoration: const InputDecoration(labelText: 'Amount (৳)'),
                 keyboardType: TextInputType.number,
               ),
             ],
@@ -197,7 +199,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: Text("Cancel"),
+              child: const Text("Cancel"),
             ),
             TextButton(
               onPressed: () {
@@ -209,7 +211,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                   Navigator.of(context).pop();
                 }
               },
-              child: Text("Add"),
+              child: const Text("Add"),
             ),
           ],
         );

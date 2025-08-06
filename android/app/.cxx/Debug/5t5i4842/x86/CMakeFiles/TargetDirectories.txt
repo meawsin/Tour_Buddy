@@ -1,0 +1,2 @@
+D:/Projects_Flutter/tour_buddy/android/app/.cxx/Debug/5t5i4842/x86/CMakeFiles/edit_cache.dir
+D:/Projects_Flutter/tour_buddy/android/app/.cxx/Debug/5t5i4842/x86/CMakeFiles/rebuild_cache.dir
