@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import '../models/trip.dart'; // Import the Trip model
+import '../models/trip.dart';
 
 class TripProvider extends ChangeNotifier {
   List<Trip> _trips = [];
@@ -21,7 +21,6 @@ class TripProvider extends ChangeNotifier {
       List<dynamic> decodedTrips = json.decode(savedTripsJson);
       _trips = decodedTrips.map((json) => Trip.fromJson(json)).toList();
       if (_trips.isNotEmpty) {
-        // Try to load the last selected trip, or default to the first
         String? lastTripId = prefs.getString('last_selected_trip_id');
         _currentTrip = _trips.firstWhere(
           (trip) => trip.id == lastTripId,
@@ -43,7 +42,7 @@ class TripProvider extends ChangeNotifier {
 
   void addTrip(Trip newTrip) {
     _trips.add(newTrip);
-    _currentTrip = newTrip; // Automatically select the new trip
+    _currentTrip = newTrip;
     _saveTrips();
     notifyListeners();
   }

@@ -15,7 +15,7 @@ void main() async {
         ChangeNotifierProvider(
             create: (_) => TripProvider()), // Provide TripProvider
       ],
-      child: const MyApp(),
+      child: MyApp(),
     ),
   );
 }
@@ -29,7 +29,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Tour Buddy',
       theme: Provider.of<ThemeProvider>(context).themeData,
-      home: const StartScreen(), // Set StartScreen as the home
+      home: StartScreen(), // Set StartScreen as the home
     );
   }
 }

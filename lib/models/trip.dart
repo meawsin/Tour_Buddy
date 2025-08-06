@@ -1,11 +1,11 @@
-import 'package:uuid/uuid.dart'; // Import uuid package
+import 'package:uuid/uuid.dart';
 
 class Trip {
   final String id;
   String name;
   List<Map<String, dynamic>> expenses;
   double budget;
-  String currency;
+  String currency; // This is the trip's specific currency
   DateTime startDate;
   DateTime endDate;
 
@@ -14,13 +14,12 @@ class Trip {
     required this.name,
     List<Map<String, dynamic>>? expenses,
     this.budget = 0.0,
-    this.currency = 'BDT', // Default currency
+    this.currency = 'BDT',
     required this.startDate,
     required this.endDate,
-  })  : id = id ?? const Uuid().v4(), // Generate a unique ID if not provided
+  })  : id = id ?? const Uuid().v4(),
         expenses = expenses ?? [];
 
-  // Convert Trip object to JSON for SharedPreferences
   Map<String, dynamic> toJson() => {
         'id': id,
         'name': name,
@@ -31,7 +30,6 @@ class Trip {
         'endDate': endDate.toIso8601String(),
       };
 
-  // Create Trip object from JSON
   factory Trip.fromJson(Map<String, dynamic> json) {
     return Trip(
       id: json['id'],
