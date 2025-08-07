@@ -1,21 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart'; // Import Firebase Core
 import 'package:provider/provider.dart';
-import 'theme_provider.dart';
-import 'screens/start_screen.dart';
-import 'providers/trip_provider.dart';
+import 'package:tour_buddy/firebase_options.dart'; // Import the generated Firebase options
+import 'package:tour_buddy/providers/trip_provider.dart';
+import 'package:tour_buddy/screens/start_screen.dart';
+import 'package:tour_buddy/theme_provider.dart'; // Ensure this import is correct
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  ThemeProvider themeProvider = await ThemeProvider.init();
+  // Ensure Firebase is initialized before accessing any Firebase services
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // Create an instance of TripProvider
+  final tripProvider = TripProvider();
+  // Call the sign-in method to ensure a user is authenticated
+  await tripProvider.signInWithCanvasToken();
 
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => themeProvider),
+        // Provide the existing instance of TripProvider
+        ChangeNotifierProvider.value(value: tripProvider),
         ChangeNotifierProvider(
-            create: (_) => TripProvider()), // Provide TripProvider
+            create: (context) => ThemeProvider(ThemeData.light(), 1.0, 'BDT')),
       ],
-      child: MyApp(),
+      child: const MyApp(),
     ),
   );
 }
@@ -25,11 +36,13 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Access ThemeProvider from the widget tree
+    final themeProvider = Provider.of<ThemeProvider>(context);
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
       title: 'Tour Buddy',
-      theme: Provider.of<ThemeProvider>(context).themeData,
-      home: StartScreen(), // Set StartScreen as the home
+      theme: themeProvider.currentTheme,
+      home: const StartScreen(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }

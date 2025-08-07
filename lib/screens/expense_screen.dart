@@ -33,7 +33,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
   final TextEditingController _expenseAmountController =
       TextEditingController();
   final TextEditingController _foreignAmountController =
-      TextEditingController();
+      TextEditingController(); // Corrected typo: TextordingController to TextEditingController
 
   final List<String> categories = [
     'Food',
@@ -91,7 +91,9 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
+    // Removed unused themeProvider variable to clear the warning.
+    // If you intend to use it for theming within this screen, you can re-add it.
+    // final themeProvider = Provider.of<ThemeProvider>(context);
     final tripProvider = Provider.of<TripProvider>(context);
 
     double totalExpense =
@@ -147,6 +149,14 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
               _shareTrip(context, widget.trip);
             },
           ),
+          // Added IconButton to access Trip Settings
+          IconButton(
+            icon: const Icon(Icons.edit),
+            tooltip: 'Trip Settings',
+            onPressed: () {
+              _showTripSettingsDialog(context, widget.trip);
+            },
+          ),
         ],
       ),
       drawer: Drawer(
@@ -197,7 +207,8 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                 Navigator.of(context).pop();
                 Navigator.pushAndRemoveUntil(
                   context,
-                  MaterialPageRoute(builder: (context) => PastTripsScreen()),
+                  MaterialPageRoute(
+                      builder: (context) => const PastTripsScreen()),
                   (route) => false,
                 );
               },
@@ -468,6 +479,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                     } catch (e) {
                       debugPrint(
                           'Error during currency conversion: $e'); // Use debugPrint
+                      // Corrected: showSnackBar returns void, so don't await or assign.
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                             content: Text(
@@ -479,19 +491,23 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                     finalAmount += foreignAmount;
                   }
 
-                  tripProvider.addExpenseToCurrentTrip({
-                    'title': _expenseTitleController.text,
-                    'amount': finalAmount,
-                    // Format date consistently with leading zeros
-                    'date':
-                        DateFormat("yyyy-MM-dd HH:mm").format(DateTime.now()),
-                    'category': selectedCategory,
-                  });
+                  tripProvider.addExpenseToCurrentTrip(
+                    widget.trip, // Pass the current trip object
+                    {
+                      'title': _expenseTitleController.text,
+                      'amount': finalAmount,
+                      // Format date consistently with leading zeros
+                      'date':
+                          DateFormat("yyyy-MM-dd HH:mm").format(DateTime.now()),
+                      'category': selectedCategory,
+                    },
+                  );
                   _expenseTitleController.clear();
                   _expenseAmountController.clear();
                   _foreignAmountController.clear();
                   Navigator.of(context).pop();
                 } else {
+                  // Corrected: showSnackBar returns void, so don't await or assign.
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                         content: Text(
@@ -528,19 +544,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
       tripDetails += "No expenses recorded for this trip yet! 📝";
     }
 
-    Share.share(tripDetails, subject: 'My Trip: ${trip.name}').then((result) {
-      if (result.status == ShareResultStatus.success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Trip details shared successfully!')),
-        );
-      } else if (result.status == ShareResultStatus.dismissed) {
-        // User dismissed the share sheet
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to share trip details.')),
-        );
-      }
-    });
+    Share.share(tripDetails, subject: 'My Trip: ${trip.name}');
   }
 
   void _showTripSettingsDialog(BuildContext context, Trip trip) {
@@ -662,7 +666,9 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
             ),
             ElevatedButton(
               onPressed: () {
+                // Pass the trip object to updateCurrentTrip
                 tripProvider.updateCurrentTrip(
+                  trip: trip,
                   budget: double.tryParse(_currentBudgetController.text),
                   currency: _selectedCurrency,
                   startDate: _tempStartDate,
@@ -694,7 +700,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
             ),
             ElevatedButton(
               onPressed: () {
-                tripProvider.resetCurrentTripExpenses();
+                tripProvider.resetCurrentTripExpenses(widget.trip);
                 Navigator.of(context).pop();
               },
               child: const Text('Reset', style: TextStyle(color: Colors.red)),

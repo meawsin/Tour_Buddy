@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "619828801275",
+    "project_id": "tourbuddyapp-7dd7e",
+    "storage_bucket": "tourbuddyapp-7dd7e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:619828801275:android:c79a7c3ba0e2f10a7a4a5e",
+        "android_client_info": {
+          "package_name": "com.example.tour_buddy"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAqXR2e8FUZ8KnFZ7Yi5C-UXXfW3tmbQhc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

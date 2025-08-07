@@ -13,6 +13,8 @@ class ThemeProvider extends ChangeNotifier {
   double get fontSizeMultiplier => _fontSizeMultiplier;
   String get appCurrency => _appCurrency;
 
+  get currentTheme => null;
+
   void toggleTheme() async {
     if (_themeData.brightness == Brightness.dark) {
       _themeData = _buildTheme(Brightness.light, _fontSizeMultiplier);
