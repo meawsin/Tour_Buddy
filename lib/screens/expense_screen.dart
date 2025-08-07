@@ -33,7 +33,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
   final TextEditingController _expenseAmountController =
       TextEditingController();
   final TextEditingController _foreignAmountController =
-      TextEditingController(); // Corrected typo: TextordingController to TextEditingController
+      TextEditingController();
 
   final List<String> categories = [
     'Food',
@@ -92,8 +92,6 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
   @override
   Widget build(BuildContext context) {
     // Removed unused themeProvider variable to clear the warning.
-    // If you intend to use it for theming within this screen, you can re-add it.
-    // final themeProvider = Provider.of<ThemeProvider>(context);
     final tripProvider = Provider.of<TripProvider>(context);
 
     double totalExpense =
@@ -479,7 +477,6 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                     } catch (e) {
                       debugPrint(
                           'Error during currency conversion: $e'); // Use debugPrint
-                      // Corrected: showSnackBar returns void, so don't await or assign.
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                             content: Text(
@@ -507,7 +504,6 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                   _foreignAmountController.clear();
                   Navigator.of(context).pop();
                 } else {
-                  // Corrected: showSnackBar returns void, so don't await or assign.
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                         content: Text(
@@ -590,7 +586,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                           });
                         }
                       },
-                      items: <String>['BDT', 'USD', 'EUR', 'GBP', 'INR']
+                      items: <String>['BDT', 'USD', 'EUR', 'GBP', 'INR', 'BDT']
                           .map<DropdownMenuItem<String>>((String value) {
                         return DropdownMenuItem<String>(
                           value: value,

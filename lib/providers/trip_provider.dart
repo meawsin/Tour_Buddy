@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart'; // Import Google Sign-In
 import 'package:tour_buddy/models/trip.dart';
 
 class TripProvider with ChangeNotifier {
@@ -9,8 +10,10 @@ class TripProvider with ChangeNotifier {
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn(); // Google Sign-In instance
 
   TripProvider() {
+    // Listen for authentication state changes
     _auth.authStateChanges().listen((user) {
       _currentUser = user;
       if (user != null) {
@@ -22,21 +25,58 @@ class TripProvider with ChangeNotifier {
         notifyListeners();
       }
     });
-    _signInAnonymously(); // Attempt anonymous sign-in on startup
+    // Attempt anonymous sign-in on startup if no user is present
+    // This is a fallback if no explicit sign-in is performed.
+    _signInAnonymously();
   }
 
   List<Trip> get trips => _trips;
+  User? get currentUser => _currentUser;
 
   // --- Authentication Methods ---
+
+  // Anonymous sign-in (fallback or initial anonymous usage)
   Future<void> _signInAnonymously() async {
     try {
       if (_auth.currentUser == null) {
-        // Only sign in anonymously if no user is currently signed in
         await _auth.signInAnonymously();
-        print("Signed in anonymously.");
       }
     } catch (e) {
       print("Error signing in anonymously: $e");
+    }
+  }
+
+  // Google Sign-In
+  Future<void> signInWithGoogle() async {
+    try {
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        // The user canceled the sign-in
+        return;
+      }
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      await _auth.signInWithCredential(credential);
+      print("Signed in with Google: ${_auth.currentUser?.displayName}");
+    } catch (e) {
+      print("Error signing in with Google: $e");
+    }
+  }
+
+  // Sign out method
+  Future<void> signOut() async {
+    try {
+      await _auth.signOut();
+      await _googleSignIn.signOut(); // Also sign out from Google
+      print("User signed out.");
+    } catch (e) {
+      print("Error signing out: $e");
     }
   }
 
@@ -71,6 +111,8 @@ class TripProvider with ChangeNotifier {
   Future<void> _loadTrips() async {
     if (_currentUser == null) {
       print("No user logged in to load trips.");
+      _trips = []; // Clear trips if no user
+      notifyListeners();
       return;
     }
 
@@ -78,13 +120,14 @@ class TripProvider with ChangeNotifier {
       // Listen for real-time updates to the user's trips
       _firestore
           .collection('trips')
-          .doc(_currentUser!.uid)
+          .doc(_currentUser!.uid) // Use current user's UID
           .collection('userTrips')
           .snapshots()
           .listen((snapshot) {
         _trips = snapshot.docs.map((doc) => Trip.fromFirestore(doc)).toList();
         notifyListeners();
-        print("Trips loaded/updated from Firestore.");
+        print(
+            "Trips loaded/updated from Firestore for user: ${_currentUser!.uid}");
       }, onError: (error) {
         print("Error listening to trips: $error");
       });
@@ -107,8 +150,7 @@ class TripProvider with ChangeNotifier {
           .collection('userTrips')
           .add(trip.toMap());
       trip.id = docRef.id; // Assign the Firestore generated ID
-      // _trips.add(trip); // No need to add to local list, snapshot listener will update
-      notifyListeners();
+      notifyListeners(); // Notify listeners to update UI
       print("Trip added to Firestore: ${trip.name}");
     } catch (e) {
       print("Error adding trip: $e");
@@ -129,17 +171,16 @@ class TripProvider with ChangeNotifier {
           .collection('userTrips')
           .doc(trip.id)
           .update(trip.toMap());
-      // No need to update local list, snapshot listener will update
-      notifyListeners();
+      notifyListeners(); // Notify listeners to update UI
       print("Trip updated in Firestore: ${trip.name}");
     } catch (e) {
       print("Error updating trip: $e");
     }
   }
 
-  // New method to update trip details (budget, currency, dates) for a specific trip
+  // Update trip details (budget, currency, dates) for a specific trip
   Future<void> updateCurrentTrip({
-    required Trip trip, // Now requires a specific trip object
+    required Trip trip, // Requires a specific trip object
     double? budget,
     String? currency,
     DateTime? startDate,
@@ -172,7 +213,7 @@ class TripProvider with ChangeNotifier {
     }
   }
 
-  // New method to add expense to a specific trip
+  // Add expense to a specific trip
   Future<void> addExpenseToCurrentTrip(
       Trip trip, Map<String, dynamic> expense) async {
     if (_currentUser == null || trip.id == null) {
@@ -196,7 +237,7 @@ class TripProvider with ChangeNotifier {
     }
   }
 
-  // New method to reset expenses for a specific trip
+  // Reset expenses for a specific trip
   Future<void> resetCurrentTripExpenses(Trip trip) async {
     if (_currentUser == null || trip.id == null) {
       print("No user logged in or trip ID missing. Cannot reset expenses.");
@@ -217,13 +258,10 @@ class TripProvider with ChangeNotifier {
   }
 
   // Selects a trip to be considered the "current" trip for immediate operations
-  // Note: This is a simplified approach. For a more robust solution,
-  // you might store the selected trip ID in a state variable or pass it explicitly.
+  // This method is now primarily for UI state management.
   void selectTrip(Trip trip) {
-    // In this simplified setup, we don't need to do much here
-    // as operations now take a 'trip' object directly.
-    // However, if you had a concept of a single "active" trip globally,
-    // you would set it here.
+    // In a multi-trip scenario, you might want to store the selected trip
+    // in a provider state, but for now, it mostly triggers UI updates.
     print("Trip selected: ${trip.name}");
     notifyListeners(); // Notify listeners if this selection affects UI
   }
@@ -242,8 +280,7 @@ class TripProvider with ChangeNotifier {
           .collection('userTrips')
           .doc(tripId)
           .delete();
-      // No need to remove from local list, snapshot listener will update
-      notifyListeners();
+      notifyListeners(); // Notify listeners to update UI
       print("Trip deleted from Firestore: $tripId");
     } catch (e) {
       print("Error deleting trip: $e");
