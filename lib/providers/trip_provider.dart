@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart'; // Import Google Sign-In
+import 'package:tour_buddy/models/expense_model.dart';
 import 'package:tour_buddy/models/trip.dart';
 
 class TripProvider with ChangeNotifier {
@@ -195,8 +196,9 @@ class TripProvider with ChangeNotifier {
       Map<String, dynamic> updates = {};
       if (budget != null) updates['budget'] = budget;
       if (currency != null) updates['currency'] = currency;
-      if (startDate != null)
+      if (startDate != null) {
         updates['startDate'] = Timestamp.fromDate(startDate);
+      }
       if (endDate != null) updates['endDate'] = Timestamp.fromDate(endDate);
 
       if (updates.isNotEmpty) {
@@ -286,4 +288,22 @@ class TripProvider with ChangeNotifier {
       print("Error deleting trip: $e");
     }
   }
+
+
+  // Logic to calculate trip financials
+double calculateTotalSpent(List<Expense> expenses, String tripId) {
+  return expenses
+      .where((e) => e.tripId == tripId)
+      .fold(0.0, (sum, item) => sum + item.amount);
+}
+
+double calculateRemainingBudget(double totalBudget, double totalSpent) {
+  return totalBudget - totalSpent;
+}
+
+// Visual progress bar percentage (for UI) [5]
+double getBudgetUtilization(double totalBudget, double totalSpent) {
+  if (totalBudget <= 0) return 0.0;
+  return (totalSpent / totalBudget).clamp(0.0, 1.0);
+}
 }

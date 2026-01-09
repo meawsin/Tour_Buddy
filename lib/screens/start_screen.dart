@@ -82,7 +82,7 @@ class _StartScreenState extends State<StartScreen> {
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: _selectedCurrency,
+                      initialValue: _selectedCurrency,
                       decoration: InputDecoration(
                         labelText: 'Currency',
                         border: OutlineInputBorder(
@@ -251,7 +251,7 @@ class _StartScreenState extends State<StartScreen> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => SettingsScreen()),
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
               );
             },
           ),

@@ -37,12 +37,10 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
   void loadExpenses() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? savedExpenses = prefs.getString('expenses');
-    if (savedExpenses != null) {
-      List<dynamic> decodedExpenses = json.decode(savedExpenses);
-      expenses = List<Map<String, dynamic>>.from(decodedExpenses);
-      setState(() {});
+    List<dynamic> decodedExpenses = json.decode(savedExpenses!);
+    expenses = List<Map<String, dynamic>>.from(decodedExpenses);
+    setState(() {});
     }
-  }
 
   void saveExpenses() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -71,12 +69,10 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
   void loadTitle() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? savedTitle = prefs.getString('title');
-    if (savedTitle != null) {
-      setState(() {
-        title = savedTitle;
-      });
+    setState(() {
+      title = savedTitle!;
+    });
     }
-  }
 
   void saveTitle(String newTitle) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();

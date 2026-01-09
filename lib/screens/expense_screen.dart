@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:intl/intl.dart'; // Import the intl package for DateFormat
 import 'package:tour_buddy/screens/past_trips_screen.dart';
-import '../theme_provider.dart';
 import '../providers/trip_provider.dart';
 import '../models/trip.dart';
 import '../services/currency_service.dart';
@@ -218,7 +217,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                 Navigator.of(context).pop();
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => SettingsScreen()),
+                  MaterialPageRoute(builder: (context) => const SettingsScreen()),
                 );
               },
             ),
@@ -378,7 +377,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                     TextField(
                       controller: _expenseAmountController,
                       decoration: InputDecoration(
-                        labelText: 'Amount (${tripCurrency})',
+                        labelText: 'Amount ($tripCurrency)',
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8)),
                       ),
@@ -423,7 +422,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                      value: selectedCategory,
+                      initialValue: selectedCategory,
                       decoration: InputDecoration(
                         labelText: 'Category',
                         border: OutlineInputBorder(
@@ -545,11 +544,11 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
 
   void _showTripSettingsDialog(BuildContext context, Trip trip) {
     final tripProvider = Provider.of<TripProvider>(context, listen: false);
-    final TextEditingController _currentBudgetController =
+    final TextEditingController currentBudgetController =
         TextEditingController(text: trip.budget.toStringAsFixed(2));
-    String _selectedCurrency = trip.currency;
-    DateTime _tempStartDate = trip.startDate;
-    DateTime _tempEndDate = trip.endDate;
+    String selectedCurrency = trip.currency;
+    DateTime tempStartDate = trip.startDate;
+    DateTime tempEndDate = trip.endDate;
 
     showDialog(
       context: context,
@@ -563,14 +562,14 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     TextField(
-                      controller: _currentBudgetController,
+                      controller: currentBudgetController,
                       decoration:
                           const InputDecoration(labelText: 'Trip Budget'),
                       keyboardType: TextInputType.number,
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                      value: _selectedCurrency,
+                      initialValue: selectedCurrency,
                       decoration: InputDecoration(
                         labelText: 'Trip Currency',
                         border: OutlineInputBorder(
@@ -582,7 +581,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                       onChanged: (String? newValue) {
                         if (newValue != null) {
                           setState(() {
-                            _selectedCurrency = newValue;
+                            selectedCurrency = newValue;
                           });
                         }
                       },
@@ -598,21 +597,21 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                     Row(
                       children: [
                         Text(
-                            'Start Date: ${DateFormat('yyyy-MM-dd').format(_tempStartDate)}'),
+                            'Start Date: ${DateFormat('yyyy-MM-dd').format(tempStartDate)}'),
                         const Spacer(),
                         ElevatedButton(
                           onPressed: () async {
                             final DateTime? picked = await showDatePicker(
                               context: context,
-                              initialDate: _tempStartDate,
+                              initialDate: tempStartDate,
                               firstDate: DateTime(2000),
                               lastDate: DateTime(2101),
                             );
-                            if (picked != null && picked != _tempStartDate) {
+                            if (picked != null && picked != tempStartDate) {
                               setState(() {
-                                _tempStartDate = picked;
-                                if (_tempEndDate.isBefore(_tempStartDate)) {
-                                  _tempEndDate = _tempStartDate
+                                tempStartDate = picked;
+                                if (tempEndDate.isBefore(tempStartDate)) {
+                                  tempEndDate = tempStartDate
                                       .add(const Duration(days: 7));
                                 }
                               });
@@ -626,21 +625,21 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                     Row(
                       children: [
                         Text(
-                            'End Date: ${DateFormat('yyyy-MM-dd').format(_tempEndDate)}'),
+                            'End Date: ${DateFormat('yyyy-MM-dd').format(tempEndDate)}'),
                         const Spacer(),
                         ElevatedButton(
                           onPressed: () async {
                             final DateTime? picked = await showDatePicker(
                               context: context,
-                              initialDate: _tempEndDate,
+                              initialDate: tempEndDate,
                               firstDate: DateTime(2000),
                               lastDate: DateTime(2101),
                             );
-                            if (picked != null && picked != _tempEndDate) {
+                            if (picked != null && picked != tempEndDate) {
                               setState(() {
-                                _tempEndDate = picked;
-                                if (_tempStartDate.isAfter(_tempEndDate)) {
-                                  _tempStartDate = _tempEndDate
+                                tempEndDate = picked;
+                                if (tempStartDate.isAfter(tempEndDate)) {
+                                  tempStartDate = tempEndDate
                                       .subtract(const Duration(days: 7));
                                 }
                               });
@@ -665,10 +664,10 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                 // Pass the trip object to updateCurrentTrip
                 tripProvider.updateCurrentTrip(
                   trip: trip,
-                  budget: double.tryParse(_currentBudgetController.text),
-                  currency: _selectedCurrency,
-                  startDate: _tempStartDate,
-                  endDate: _tempEndDate,
+                  budget: double.tryParse(currentBudgetController.text),
+                  currency: selectedCurrency,
+                  startDate: tempStartDate,
+                  endDate: tempEndDate,
                 );
                 Navigator.of(context).pop();
               },
