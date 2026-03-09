@@ -1,44 +1,28 @@
-// android/build.gradle
 buildscript {
-    ext {
-        compileSdkVersion = 34
-        targetSdkVersion = 34
-        minSdkVersion = 21
-    }
+    ext.kotlin_version = '2.1.0'
     repositories {
         google()
         mavenCentral()
-        gradlePluginPortal()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.4.2'
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.22"
-        classpath 'com.google.gms:google-services:4.3.15'
-        classpath 'dev.flutter:flutter-gradle-plugin:1.0.0'
+        classpath 'com.android.tools.build:gradle:8.9.1'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
 
 allprojects {
-    // Add this block to ensure all subprojects inherit SDK versions
-    afterEvaluate { project ->
-        if (project.hasProperty('android')) {
-            android {
-                compileSdkVersion rootProject.ext.compileSdkVersion
-                defaultConfig {
-                    minSdkVersion rootProject.ext.minSdkVersion
-                    targetSdkVersion rootProject.ext.targetSdkVersion
-                }
-            }
-        }
+    repositories {
+        google()
+        mavenCentral()
     }
 }
 
-rootProject.buildDir = "../build"
+rootProject.buildDir = '../build'
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
 }
 subprojects {
-    project.evaluationDependsOn(":app")
+    project.evaluationDependsOn(':app')
 }
 
 tasks.register("clean", Delete) {
