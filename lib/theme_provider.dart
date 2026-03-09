@@ -1,177 +1,207 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:google_fonts/google_fonts.dart'; // Import google_fonts
 
-class ThemeProvider extends ChangeNotifier {
-  ThemeData _themeData;
-  double _fontSizeMultiplier = 1.0; // Default font size multiplier
-  String _appCurrency = 'BDT'; // Default app-wide currency
+class ThemeProvider with ChangeNotifier {
+  bool _isDarkMode;
+  double _fontSizeScale;
+  String _currency;
 
-  ThemeProvider(this._themeData, this._fontSizeMultiplier, this._appCurrency);
+  ThemeProvider({
+    bool isDarkMode = true,
+    double fontSizeScale = 1.0,
+    String currency = 'BDT',
+  })  : _isDarkMode = isDarkMode,
+        _fontSizeScale = fontSizeScale,
+        _currency = currency;
 
-  ThemeData get themeData => _themeData;
-  double get fontSizeMultiplier => _fontSizeMultiplier;
-  String get appCurrency => _appCurrency;
-
-  Null get currentTheme => null;
-
-  void toggleTheme() async {
-    if (_themeData.brightness == Brightness.dark) {
-      _themeData = _buildTheme(Brightness.light, _fontSizeMultiplier);
-    } else {
-      _themeData = _buildTheme(Brightness.dark, _fontSizeMultiplier);
-    }
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setBool('isDarkTheme', _themeData.brightness == Brightness.dark);
-    notifyListeners();
-  }
-
-  void setFontSizeMultiplier(double multiplier) async {
-    _fontSizeMultiplier = multiplier;
-    _themeData = _buildTheme(_themeData.brightness, _fontSizeMultiplier);
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setDouble('fontSizeMultiplier', multiplier);
-    notifyListeners();
-  }
-
-  void setAppCurrency(String currency) async {
-    _appCurrency = currency;
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setString('appCurrency', currency);
-    notifyListeners();
-  }
-
-  // Helper function to ensure fontSize is not null and then scale it
-  static TextStyle? _ensureFontSizeAndScale(
-      TextStyle? style, double multiplier) {
-    if (style == null) return null;
-    // Provide a default fontSize (e.g., 14.0) if it's null, then scale.
-    // This prevents the assertion error if GoogleFonts or Flutter's defaults
-    // ever provide a null fontSize for a specific TextStyle.
-    double baseFontSize =
-        style.fontSize ?? 14.0; // Use a sensible default if fontSize is null
-    return style.copyWith(fontSize: baseFontSize * multiplier);
-  }
-
-  // Helper to build theme with selected font and size
-  static ThemeData _buildTheme(
-      Brightness brightness, double fontSizeMultiplier) {
-    final baseTheme =
-        brightness == Brightness.dark ? ThemeData.dark() : ThemeData.light();
-
-    // Get a base TextTheme from GoogleFonts.
-    TextTheme poppinsTextTheme = GoogleFonts.poppinsTextTheme();
-
-    // Create a new TextTheme by explicitly copying each TextStyle and ensuring fontSize is not null.
-    // Then apply the fontSizeMultiplier.
-    TextTheme scaledTextTheme = poppinsTextTheme.copyWith(
-      displayLarge: _ensureFontSizeAndScale(
-          poppinsTextTheme.displayLarge, fontSizeMultiplier),
-      displayMedium: _ensureFontSizeAndScale(
-          poppinsTextTheme.displayMedium, fontSizeMultiplier),
-      displaySmall: _ensureFontSizeAndScale(
-          poppinsTextTheme.displaySmall, fontSizeMultiplier),
-      headlineLarge: _ensureFontSizeAndScale(
-          poppinsTextTheme.headlineLarge, fontSizeMultiplier),
-      headlineMedium: _ensureFontSizeAndScale(
-          poppinsTextTheme.headlineMedium, fontSizeMultiplier),
-      headlineSmall: _ensureFontSizeAndScale(
-          poppinsTextTheme.headlineSmall, fontSizeMultiplier),
-      titleLarge: _ensureFontSizeAndScale(
-          poppinsTextTheme.titleLarge, fontSizeMultiplier),
-      titleMedium: _ensureFontSizeAndScale(
-          poppinsTextTheme.titleMedium, fontSizeMultiplier),
-      titleSmall: _ensureFontSizeAndScale(
-          poppinsTextTheme.titleSmall, fontSizeMultiplier),
-      bodyLarge: _ensureFontSizeAndScale(
-          poppinsTextTheme.bodyLarge, fontSizeMultiplier),
-      bodyMedium: _ensureFontSizeAndScale(
-          poppinsTextTheme.bodyMedium, fontSizeMultiplier),
-      bodySmall: _ensureFontSizeAndScale(
-          poppinsTextTheme.bodySmall, fontSizeMultiplier),
-      labelLarge: _ensureFontSizeAndScale(
-          poppinsTextTheme.labelLarge, fontSizeMultiplier),
-      labelMedium: _ensureFontSizeAndScale(
-          poppinsTextTheme.labelMedium, fontSizeMultiplier),
-      labelSmall: _ensureFontSizeAndScale(
-          poppinsTextTheme.labelSmall, fontSizeMultiplier),
-    );
-
-    // Apply colors from the base theme's textTheme to the scaled text theme.
-    // This ensures that the text colors match the overall theme (light/dark).
-    TextTheme finalColoredTextTheme = scaledTextTheme.copyWith(
-      displayLarge: scaledTextTheme.displayLarge
-          ?.copyWith(color: baseTheme.textTheme.displayLarge?.color),
-      displayMedium: scaledTextTheme.displayMedium
-          ?.copyWith(color: baseTheme.textTheme.displayMedium?.color),
-      displaySmall: scaledTextTheme.displaySmall
-          ?.copyWith(color: baseTheme.textTheme.displaySmall?.color),
-      headlineLarge: scaledTextTheme.headlineLarge
-          ?.copyWith(color: baseTheme.textTheme.headlineLarge?.color),
-      headlineMedium: scaledTextTheme.headlineMedium
-          ?.copyWith(color: baseTheme.textTheme.headlineMedium?.color),
-      headlineSmall: scaledTextTheme.headlineSmall
-          ?.copyWith(color: baseTheme.textTheme.headlineSmall?.color),
-      titleLarge: scaledTextTheme.titleLarge
-          ?.copyWith(color: baseTheme.textTheme.titleLarge?.color),
-      titleMedium: scaledTextTheme.titleMedium
-          ?.copyWith(color: baseTheme.textTheme.titleMedium?.color),
-      titleSmall: scaledTextTheme.titleSmall
-          ?.copyWith(color: baseTheme.textTheme.titleSmall?.color),
-      bodyLarge: scaledTextTheme.bodyLarge
-          ?.copyWith(color: baseTheme.textTheme.bodyLarge?.color),
-      bodyMedium: scaledTextTheme.bodyMedium
-          ?.copyWith(color: baseTheme.textTheme.bodyMedium?.color),
-      bodySmall: scaledTextTheme.bodySmall
-          ?.copyWith(color: baseTheme.textTheme.bodySmall?.color),
-      labelLarge: scaledTextTheme.labelLarge
-          ?.copyWith(color: baseTheme.textTheme.labelLarge?.color),
-      labelMedium: scaledTextTheme.labelMedium
-          ?.copyWith(color: baseTheme.textTheme.labelMedium?.color),
-      labelSmall: scaledTextTheme.labelSmall
-          ?.copyWith(color: baseTheme.textTheme.labelSmall?.color),
-    );
-
-    return baseTheme.copyWith(
-      textTheme: finalColoredTextTheme, // Use the final textTheme
-      appBarTheme: baseTheme.appBarTheme.copyWith(
-        backgroundColor:
-            brightness == Brightness.dark ? Colors.grey[850] : Colors.blue,
-        foregroundColor: Colors.white,
-      ),
-      floatingActionButtonTheme: baseTheme.floatingActionButtonTheme.copyWith(
-        backgroundColor: Colors.blueAccent,
-        foregroundColor: Colors.white,
-      ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blueAccent, // Consistent button color
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      ),
-      cardTheme: baseTheme.cardTheme.copyWith(
-        elevation: 6,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      ),
-    );
-  }
+  bool get isDarkMode => _isDarkMode;
+  double get fontSizeScale => _fontSizeScale;
+  String get currency => _currency;
 
   static Future<ThemeProvider> init() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    bool isDarkTheme = prefs.getBool('isDarkTheme') ?? false;
-    double fontSizeMultiplier = prefs.getDouble('fontSizeMultiplier') ?? 1.0;
-    String appCurrency =
-        prefs.getString('appCurrency') ?? 'BDT'; // Load app currency
-
+    final prefs = await SharedPreferences.getInstance();
     return ThemeProvider(
-      _buildTheme(
-          isDarkTheme ? Brightness.dark : Brightness.light, fontSizeMultiplier),
-      fontSizeMultiplier,
-      appCurrency,
+      isDarkMode: prefs.getBool('isDarkMode') ?? true,
+      fontSizeScale: prefs.getDouble('fontSizeScale') ?? 1.0,
+      currency: prefs.getString('currency') ?? 'BDT',
     );
   }
+
+  void toggleTheme() async {
+    _isDarkMode = !_isDarkMode;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isDarkMode', _isDarkMode);
+    notifyListeners();
+  }
+
+  void setFontSizeScale(double scale) async {
+    _fontSizeScale = scale;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('fontSizeScale', scale);
+    notifyListeners();
+  }
+
+  void setCurrency(String currency) async {
+    _currency = currency;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('currency', currency);
+    notifyListeners();
+  }
+
+  ThemeData get themeData {
+    final base = _isDarkMode ? _darkTheme : _lightTheme;
+    return base.copyWith(
+      textTheme: base.textTheme.apply(fontSizeFactor: _fontSizeScale),
+    );
+  }
+
+  static final _darkTheme = ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.dark,
+    colorScheme: ColorScheme.dark(
+      primary: const Color(0xFF7C6AFF),
+      secondary: const Color(0xFF6AFFD4),
+      tertiary: const Color(0xFFFF6A9B),
+      surface: const Color(0xFF12121A),
+      onSurface: const Color(0xFFF0EEFF),
+      surfaceContainerHighest: const Color(0xFF1A1A26),
+      outline: const Color(0xFF2A2A3A),
+    ),
+    scaffoldBackgroundColor: const Color(0xFF0A0A0F),
+    cardColor: const Color(0xFF12121A),
+    textTheme: GoogleFonts.dmSansTextTheme(ThemeData.dark().textTheme).copyWith(
+      displayLarge: GoogleFonts.syne(
+          fontWeight: FontWeight.w700, color: const Color(0xFFF0EEFF)),
+      displayMedium: GoogleFonts.syne(
+          fontWeight: FontWeight.w600, color: const Color(0xFFF0EEFF)),
+      titleLarge: GoogleFonts.syne(
+          fontWeight: FontWeight.w600, color: const Color(0xFFF0EEFF)),
+      titleMedium: GoogleFonts.syne(
+          fontWeight: FontWeight.w500, color: const Color(0xFFF0EEFF)),
+    ),
+    appBarTheme: AppBarTheme(
+      backgroundColor: const Color(0xFF0A0A0F),
+      elevation: 0,
+      centerTitle: false,
+      titleTextStyle: GoogleFonts.syne(
+        fontSize: 20,
+        fontWeight: FontWeight.w700,
+        color: const Color(0xFFF0EEFF),
+      ),
+      iconTheme: const IconThemeData(color: Color(0xFFF0EEFF)),
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF7C6AFF),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        textStyle: GoogleFonts.syne(fontWeight: FontWeight.w600, fontSize: 15),
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: const Color(0xFF1A1A26),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFF2A2A3A)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFF2A2A3A)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFF7C6AFF), width: 1.5),
+      ),
+      labelStyle: const TextStyle(color: Color(0xFF8888AA)),
+      hintStyle: const TextStyle(color: Color(0xFF8888AA)),
+    ),
+    cardTheme: CardThemeData(
+      color: const Color(0xFF12121A),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: Color(0xFF2A2A3A)),
+      ),
+    ),
+    dividerColor: const Color(0xFF2A2A3A),
+  );
+
+  static final _lightTheme = ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.light,
+    colorScheme: ColorScheme.light(
+      primary: const Color(0xFF5B4AE8),
+      secondary: const Color(0xFF00C9A7),
+      tertiary: const Color(0xFFE8446A),
+      surface: const Color(0xFFFFFFFF),
+      onSurface: const Color(0xFF1A1A2E),
+      surfaceContainerHighest: const Color(0xFFF4F3FF),
+      outline: const Color(0xFFE0DFFF),
+    ),
+    scaffoldBackgroundColor: const Color(0xFFF7F6FF),
+    cardColor: const Color(0xFFFFFFFF),
+    textTheme:
+        GoogleFonts.dmSansTextTheme(ThemeData.light().textTheme).copyWith(
+      displayLarge: GoogleFonts.syne(
+          fontWeight: FontWeight.w700, color: const Color(0xFF1A1A2E)),
+      displayMedium: GoogleFonts.syne(
+          fontWeight: FontWeight.w600, color: const Color(0xFF1A1A2E)),
+      titleLarge: GoogleFonts.syne(
+          fontWeight: FontWeight.w600, color: const Color(0xFF1A1A2E)),
+      titleMedium: GoogleFonts.syne(
+          fontWeight: FontWeight.w500, color: const Color(0xFF1A1A2E)),
+    ),
+    appBarTheme: AppBarTheme(
+      backgroundColor: const Color(0xFFF7F6FF),
+      elevation: 0,
+      centerTitle: false,
+      titleTextStyle: GoogleFonts.syne(
+        fontSize: 20,
+        fontWeight: FontWeight.w700,
+        color: const Color(0xFF1A1A2E),
+      ),
+      iconTheme: const IconThemeData(color: Color(0xFF1A1A2E)),
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF5B4AE8),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        textStyle: GoogleFonts.syne(fontWeight: FontWeight.w600, fontSize: 15),
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: const Color(0xFFF4F3FF),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFE0DFFF)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFE0DFFF)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFF5B4AE8), width: 1.5),
+      ),
+      labelStyle: const TextStyle(color: Color(0xFF8888AA)),
+      hintStyle: const TextStyle(color: Color(0xFF8888AA)),
+    ),
+    cardTheme: CardThemeData(
+      color: const Color(0xFFFFFFFF),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: Color(0xFFE0DFFF)),
+      ),
+    ),
+    dividerColor: const Color(0xFFE0DFFF),
+  );
 }

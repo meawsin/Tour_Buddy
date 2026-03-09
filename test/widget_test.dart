@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tour_buddy/expense_screen.dart';
+import 'package:tour_buddy/providers/trip_provider.dart';
+import 'package:tour_buddy/screens/expense_screen.dart';
 
 void main() {
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const ExpenseScreen());
+    await tester.pumpWidget(TripProvider());
 
     // Verify that our counter starts at 0.
     expect(find.text('0'), findsOneWidget);

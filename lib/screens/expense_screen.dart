@@ -1,777 +1,1268 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:intl/intl.dart'; // Import the intl package for DateFormat
-import 'package:tour_buddy/screens/past_trips_screen.dart';
+import 'package:intl/intl.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:uuid/uuid.dart';
 import '../providers/trip_provider.dart';
 import '../models/trip.dart';
-import '../services/currency_service.dart';
 import 'settings_screen.dart';
 import 'start_screen.dart';
+import 'past_trips_screen.dart';
 
-enum ExpenseSortOption {
-  dateAsc,
-  dateDesc,
-  amountAsc,
-  amountDesc,
-  categoryAsc,
+// ── Category definitions ────────────────────────────────────────────────────
+class ExpenseCategory {
+  final String id;
+  final String label;
+  final IconData icon;
+  final Color color;
+  const ExpenseCategory(this.id, this.label, this.icon, this.color);
 }
+
+const kCategories = [
+  ExpenseCategory('Food', 'Food', Icons.restaurant_rounded, Color(0xFFFF9F43)),
+  ExpenseCategory('Transport', 'Travel', Icons.flight_rounded, Color(0xFF54A0FF)),
+  ExpenseCategory('Accommodation', 'Stay', Icons.hotel_rounded, Color(0xFF5F27CD)),
+  ExpenseCategory('Shopping', 'Shop', Icons.shopping_bag_rounded, Color(0xFF00D2D3)),
+  ExpenseCategory('Activities', 'Fun', Icons.attractions_rounded, Color(0xFFFF6B81)),
+  ExpenseCategory('Other', 'Other', Icons.category_rounded, Color(0xFFA29BFE)),
+];
+
+ExpenseCategory categoryFor(String id) =>
+    kCategories.firstWhere((c) => c.id == id, orElse: () => kCategories.last);
+
+// ── Sort options ────────────────────────────────────────────────────────────
+enum SortOption { dateDesc, dateAsc, amountDesc, amountAsc, category }
 
 class ExpenseScreen extends StatefulWidget {
   final Trip trip;
-
-  const ExpenseScreen(
-      {super.key, required this.trip}); // Added key for best practice
+  const ExpenseScreen({super.key, required this.trip});
 
   @override
-  _ExpenseScreenState createState() => _ExpenseScreenState();
+  State<ExpenseScreen> createState() => _ExpenseScreenState();
 }
 
-class _ExpenseScreenState extends State<ExpenseScreen> {
-  final TextEditingController _expenseTitleController = TextEditingController();
-  final TextEditingController _expenseAmountController =
-      TextEditingController();
-  final TextEditingController _foreignAmountController =
-      TextEditingController();
+class _ExpenseScreenState extends State<ExpenseScreen>
+    with SingleTickerProviderStateMixin {
+  final _titleCtrl = TextEditingController();
+  final _amountCtrl = TextEditingController();
+  final _notesCtrl = TextEditingController();
 
-  final List<String> categories = [
-    'Food',
-    'Transport',
-    'Accommodation',
-    'Shopping',
-    'Activities',
-    'Other'
-  ];
-  String selectedCategory = 'Food';
+  String _selectedCategory = 'Food';
+  SortOption _sort = SortOption.dateDesc;
+  String? _filterCategory;
 
-  String _foreignCurrency = 'USD';
-  ExpenseSortOption _currentSortOption =
-      ExpenseSortOption.dateDesc; // Default sort
+  late AnimationController _fabAnim;
 
-  List<Map<String, dynamic>> _getSortedExpenses(
-      List<Map<String, dynamic>> expenses) {
-    List<Map<String, dynamic>> sortedList = List.from(expenses);
-    // Define a consistent date format for parsing
-    final dateFormat =
-        DateFormat("yyyy-MM-dd HH:mm"); // Matches the new storage format
-
-    switch (_currentSortOption) {
-      case ExpenseSortOption.dateAsc:
-        sortedList.sort((a, b) {
-          // Parse date strings using the consistent format
-          final dateA = dateFormat.parse(a['date']);
-          final dateB = dateFormat.parse(b['date']);
-          return dateA.compareTo(dateB);
-        });
-        break;
-      case ExpenseSortOption.dateDesc:
-        sortedList.sort((a, b) {
-          // Parse date strings using the consistent format
-          final dateA = dateFormat.parse(a['date']);
-          final dateB = dateFormat.parse(b['date']);
-          return dateB.compareTo(dateA);
-        });
-        break;
-      case ExpenseSortOption.amountAsc:
-        sortedList.sort(
-            (a, b) => (a['amount'] as double).compareTo(b['amount'] as double));
-        break;
-      case ExpenseSortOption.amountDesc:
-        sortedList.sort(
-            (a, b) => (b['amount'] as double).compareTo(a['amount'] as double));
-        break;
-      case ExpenseSortOption.categoryAsc:
-        sortedList.sort((a, b) =>
-            (a['category'] as String).compareTo(b['category'] as String));
-        break;
-    }
-    return sortedList;
+  @override
+  void initState() {
+    super.initState();
+    _fabAnim = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 300));
+    _fabAnim.forward();
   }
 
   @override
-  Widget build(BuildContext context) {
-    // Removed unused themeProvider variable to clear the warning.
-    final tripProvider = Provider.of<TripProvider>(context);
+  void dispose() {
+    _titleCtrl.dispose();
+    _amountCtrl.dispose();
+    _notesCtrl.dispose();
+    _fabAnim.dispose();
+    super.dispose();
+  }
 
-    double totalExpense =
-        widget.trip.expenses.fold(0, (sum, item) => sum + item['amount']);
-    List<Map<String, dynamic>> sortedExpenses =
-        _getSortedExpenses(widget.trip.expenses);
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  Color get _primary => Theme.of(context).colorScheme.primary;
+  Color get _secondary => Theme.of(context).colorScheme.secondary;
+  Color get _tertiary => Theme.of(context).colorScheme.tertiary;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.trip.name),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.analytics_outlined),
-            tooltip: 'Trip Insights',
-            onPressed: () {
-              _showTripInsightsDialog(context, widget.trip);
-            },
-          ),
-          PopupMenuButton<ExpenseSortOption>(
-            onSelected: (ExpenseSortOption result) {
-              setState(() {
-                _currentSortOption = result;
-              });
-            },
-            itemBuilder: (BuildContext context) =>
-                <PopupMenuEntry<ExpenseSortOption>>[
-              const PopupMenuItem<ExpenseSortOption>(
-                value: ExpenseSortOption.dateDesc,
-                child: Text('Sort by Date (Newest)'),
-              ),
-              const PopupMenuItem<ExpenseSortOption>(
-                value: ExpenseSortOption.dateAsc,
-                child: Text('Sort by Date (Oldest)'),
-              ),
-              const PopupMenuItem<ExpenseSortOption>(
-                value: ExpenseSortOption.amountDesc,
-                child: Text('Sort by Amount (High to Low)'),
-              ),
-              const PopupMenuItem<ExpenseSortOption>(
-                value: ExpenseSortOption.amountAsc,
-                child: Text('Sort by Amount (Low to High)'),
-              ),
-              const PopupMenuItem<ExpenseSortOption>(
-                value: ExpenseSortOption.categoryAsc,
-                child: Text('Sort by Category'),
-              ),
-            ],
-          ),
-          IconButton(
-            icon: const Icon(Icons.share),
-            tooltip: 'Share Trip',
-            onPressed: () {
-              _shareTrip(context, widget.trip);
-            },
-          ),
-          // Added IconButton to access Trip Settings
-          IconButton(
-            icon: const Icon(Icons.edit),
-            tooltip: 'Trip Settings',
-            onPressed: () {
-              _showTripSettingsDialog(context, widget.trip);
-            },
-          ),
-        ],
-      ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: <Widget>[
-            DrawerHeader(
-              decoration: const BoxDecoration(color: Colors.blue),
+  List<Map<String, dynamic>> _sorted(List<Map<String, dynamic>> raw) {
+    final list = List<Map<String, dynamic>>.from(raw);
+    if (_filterCategory != null) {
+      list.retainWhere((e) => e['category'] == _filterCategory);
+    }
+    switch (_sort) {
+      case SortOption.dateDesc:
+        list.sort((a, b) => _parseDate(b['date']).compareTo(_parseDate(a['date'])));
+      case SortOption.dateAsc:
+        list.sort((a, b) => _parseDate(a['date']).compareTo(_parseDate(b['date'])));
+      case SortOption.amountDesc:
+        list.sort((a, b) => (b['amount'] as num).compareTo(a['amount'] as num));
+      case SortOption.amountAsc:
+        list.sort((a, b) => (a['amount'] as num).compareTo(b['amount'] as num));
+      case SortOption.category:
+        list.sort((a, b) =>
+            (a['category'] as String).compareTo(b['category'] as String));
+    }
+    return list;
+  }
+
+  DateTime _parseDate(dynamic v) {
+    if (v == null) return DateTime.now();
+    try { return DateTime.parse(v.toString()); } catch (_) { return DateTime.now(); }
+  }
+
+  double get _totalSpent =>
+      widget.trip.expenses.fold(0, (s, e) => s + (e['amount'] as num));
+
+  double get _budgetProgress =>
+      widget.trip.budget > 0
+          ? (_totalSpent / widget.trip.budget).clamp(0.0, 1.0)
+          : 0.0;
+
+  Map<String, double> get _categoryTotals {
+    final Map<String, double> map = {};
+    for (final e in widget.trip.expenses) {
+      final cat = e['category'] as String? ?? 'Other';
+      map[cat] = (map[cat] ?? 0) + (e['amount'] as num);
+    }
+    return map;
+  }
+
+  // ── Add Expense Sheet ──────────────────────────────────────────────────────
+  void _showAddExpenseSheet() {
+    _titleCtrl.clear();
+    _amountCtrl.clear();
+    _notesCtrl.clear();
+    _selectedCategory = 'Food';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          final pad = MediaQuery.of(ctx).viewInsets.bottom;
+          return Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            padding: EdgeInsets.fromLTRB(24, 12, 24, 24 + pad),
+            child: SingleChildScrollView(
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  const Text(
-                    'Trip Options',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold),
+                  // Handle
+                  Center(
+                    child: Container(
+                      width: 40, height: 4,
+                      margin: const EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.outline.withOpacity(0.4),
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'For ${widget.trip.name}',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 16,
+                  Text('Add Expense 💸',
+                      style: GoogleFonts.syne(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: Theme.of(context).colorScheme.onSurface)),
+                  const SizedBox(height: 4),
+                  Text('Track your spending for ${widget.trip.name}',
+                      style: TextStyle(
+                          fontSize: 13,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.5))),
+                  const SizedBox(height: 22),
+
+                  // Title
+                  _sheetLabel('Title'),
+                  TextField(
+                    controller: _titleCtrl,
+                    decoration: const InputDecoration(
+                      hintText: 'e.g. Street food lunch',
+                      prefixIcon: Icon(Icons.receipt_long_rounded, size: 20),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Amount
+                  _sheetLabel('Amount (${widget.trip.currency})'),
+                  TextField(
+                    controller: _amountCtrl,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      hintText: '0.00',
+                      prefixIcon: Icon(Icons.payments_rounded, size: 20),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Category picker
+                  _sheetLabel('Category'),
+                  SizedBox(
+                    height: 76,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: kCategories.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 10),
+                      itemBuilder: (_, i) {
+                        final cat = kCategories[i];
+                        final sel = _selectedCategory == cat.id;
+                        return GestureDetector(
+                          onTap: () => setSheetState(
+                              () => _selectedCategory = cat.id),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 180),
+                            width: 66,
+                            decoration: BoxDecoration(
+                              color: sel
+                                  ? cat.color.withOpacity(0.2)
+                                  : Theme.of(context)
+                                      .colorScheme
+                                      .surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: sel
+                                    ? cat.color
+                                    : Theme.of(context)
+                                        .colorScheme
+                                        .outline
+                                        .withOpacity(0.3),
+                                width: sel ? 1.5 : 1,
+                              ),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(cat.icon,
+                                    size: 24,
+                                    color: sel
+                                        ? cat.color
+                                        : Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withOpacity(0.5)),
+                                const SizedBox(height: 5),
+                                Text(cat.label,
+                                    style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: sel
+                                            ? FontWeight.w700
+                                            : FontWeight.normal,
+                                        color: sel
+                                            ? cat.color
+                                            : Theme.of(context)
+                                                .colorScheme
+                                                .onSurface
+                                                .withOpacity(0.5))),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Notes
+                  _sheetLabel('Notes (optional)'),
+                  TextField(
+                    controller: _notesCtrl,
+                    decoration: const InputDecoration(
+                      hintText: 'Any extra details...',
+                      prefixIcon: Icon(Icons.notes_rounded, size: 20),
+                    ),
+                  ),
+                  const SizedBox(height: 26),
+
+                  // Submit
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => _submitExpense(context),
+                      style: ElevatedButton.styleFrom(
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 16)),
+                      child: const Text('Add Expense'),
                     ),
                   ),
                 ],
               ),
             ),
-            ListTile(
-              leading: const Icon(Icons.home),
-              title: const Text('Home'),
-              onTap: () {
-                Navigator.of(context).pop();
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const StartScreen()), // Use const
-                  (route) => false,
-                );
-              },
+          );
+        },
+      ),
+    );
+  }
+
+  void _submitExpense(BuildContext ctx) {
+    final title = _titleCtrl.text.trim();
+    final amount = double.tryParse(_amountCtrl.text);
+    if (title.isEmpty || amount == null || amount <= 0) {
+      ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+        content: const Text('Please enter a valid title and amount'),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+      ));
+      return;
+    }
+    final expense = {
+      'id': const Uuid().v4(),
+      'title': title,
+      'amount': amount,
+      'category': _selectedCategory,
+      'notes': _notesCtrl.text.trim(),
+      'date': DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now()),
+    };
+    Provider.of<TripProvider>(ctx, listen: false)
+        .addExpenseToCurrentTrip(widget.trip, expense);
+    Navigator.pop(ctx);
+    ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+      content: Text('✓ ${title} added'),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.all(16),
+    ));
+  }
+
+  // ── Main Build ─────────────────────────────────────────────────────────────
+  @override
+  Widget build(BuildContext context) {
+    final tripProvider = Provider.of<TripProvider>(context);
+    final expenses = widget.trip.expenses;
+    final sorted = _sorted(expenses);
+    final budget = widget.trip.budget;
+    final remaining = budget - _totalSpent;
+
+    return Scaffold(
+      body: CustomScrollView(
+        slivers: [
+          // ── Hero App Bar ─────────────────────────────────────────
+          SliverAppBar(
+            expandedHeight: 200,
+            pinned: true,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      _primary.withOpacity(0.15),
+                      _tertiary.withOpacity(0.05),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: SafeArea(
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.fromLTRB(20, 60, 20, 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text(
+                          widget.trip.name,
+                          style: GoogleFonts.syne(
+                            fontSize: 26,
+                            fontWeight: FontWeight.w800,
+                            color:
+                                Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(Icons.location_on_rounded,
+                                size: 14,
+                                color: _primary.withOpacity(0.8)),
+                            const SizedBox(width: 4),
+                            Text(widget.trip.destination,
+                                style: TextStyle(
+                                    fontSize: 13,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withOpacity(0.6))),
+                            const SizedBox(width: 12),
+                            Icon(Icons.calendar_today_rounded,
+                                size: 12,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withOpacity(0.4)),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${DateFormat('MMM d').format(widget.trip.startDate)} – ${DateFormat('MMM d').format(widget.trip.endDate)}',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurface
+                                      .withOpacity(0.5)),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              titlePadding:
+                  const EdgeInsets.only(left: 56, bottom: 16, right: 120),
+              title: Text(
+                widget.trip.name,
+                style: GoogleFonts.syne(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Theme.of(context).colorScheme.onSurface),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-            ListTile(
-              leading: const Icon(Icons.history),
-              title: const Text('Past Trips'),
-              onTap: () {
-                Navigator.of(context).pop();
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const PastTripsScreen()),
-                  (route) => false,
-                );
-              },
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.bar_chart_rounded),
+                tooltip: 'Insights',
+                onPressed: () => _showInsightsSheet(context),
+              ),
+              IconButton(
+                icon: const Icon(Icons.share_rounded),
+                onPressed: () => _shareTrip(context),
+              ),
+              PopupMenuButton<SortOption>(
+                icon: const Icon(Icons.sort_rounded),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
+                onSelected: (v) => setState(() => _sort = v),
+                itemBuilder: (_) => [
+                  _menuItem(SortOption.dateDesc, 'Newest first',
+                      Icons.arrow_downward_rounded),
+                  _menuItem(SortOption.dateAsc, 'Oldest first',
+                      Icons.arrow_upward_rounded),
+                  _menuItem(SortOption.amountDesc, 'Highest amount',
+                      Icons.trending_down_rounded),
+                  _menuItem(SortOption.amountAsc, 'Lowest amount',
+                      Icons.trending_up_rounded),
+                  _menuItem(SortOption.category, 'By category',
+                      Icons.category_rounded),
+                ],
+              ),
+              IconButton(
+                icon: const Icon(Icons.edit_rounded),
+                onPressed: () => _showTripSettingsSheet(context, tripProvider),
+              ),
+            ],
+          ),
+
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+
+                // ── Budget Card ────────────────────────────────────
+                _buildBudgetCard(context, budget, remaining),
+
+                const SizedBox(height: 20),
+
+                // ── Category Breakdown ─────────────────────────────
+                if (expenses.isNotEmpty) ...[
+                  _buildCategoryBreakdown(context),
+                  const SizedBox(height: 20),
+                ],
+
+                // ── Expenses Header ────────────────────────────────
+                Row(
+                  children: [
+                    Text('Expenses',
+                        style: GoogleFonts.syne(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface)),
+                    const Spacer(),
+                    if (expenses.isNotEmpty)
+                      TextButton.icon(
+                        onPressed: () =>
+                            _showResetConfirmation(context, tripProvider),
+                        icon: Icon(Icons.delete_sweep_rounded,
+                            size: 16, color: _tertiary),
+                        label: Text('Clear all',
+                            style: TextStyle(
+                                fontSize: 12, color: _tertiary)),
+                        style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4)),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                // ── Category filter chips ──────────────────────────
+                if (expenses.isNotEmpty)
+                  _buildFilterChips(context),
+
+                const SizedBox(height: 12),
+
+                // ── Expense list or empty ──────────────────────────
+                if (expenses.isEmpty)
+                  _buildEmptyExpenses(context)
+                else if (sorted.isEmpty)
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Text('No expenses in this category',
+                          style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withOpacity(0.4))),
+                    ),
+                  )
+                else
+                  ...sorted.map((e) => _buildExpenseCard(context, e, tripProvider)),
+              ]),
             ),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('Settings'),
-              onTap: () {
-                Navigator.of(context).pop();
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const SettingsScreen()),
-                );
-              },
+          ),
+        ],
+      ),
+
+      // ── FAB ──────────────────────────────────────────────────────
+      floatingActionButton: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.symmetric(horizontal: 20),
+        child: FloatingActionButton.extended(
+          onPressed: _showAddExpenseSheet,
+          backgroundColor: _primary,
+          foregroundColor: Colors.white,
+          elevation: 8,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16)),
+          icon: const Icon(Icons.add_rounded, size: 22),
+          label: Text('Add Expense',
+              style: GoogleFonts.syne(
+                  fontWeight: FontWeight.w600, fontSize: 15)),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+    );
+  }
+
+  // ── Budget Card ────────────────────────────────────────────────────────────
+  Widget _buildBudgetCard(
+      BuildContext context, double budget, double remaining) {
+    final isOver = remaining < 0 && budget > 0;
+    final progressColor = isOver ? _tertiary : _primary;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            _primary.withOpacity(0.12),
+            _secondary.withOpacity(0.06),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _primary.withOpacity(0.2)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Total Spent',
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.55))),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${widget.trip.currency} ${_totalSpent.toStringAsFixed(2)}',
+                      style: GoogleFonts.syne(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          color: Theme.of(context).colorScheme.onSurface),
+                    ),
+                  ],
+                ),
+              ),
+              if (budget > 0)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(isOver ? '⚠️ Over budget' : '✅ On track',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: isOver ? _tertiary : _secondary)),
+                    const SizedBox(height: 4),
+                    Text(
+                      isOver
+                          ? '${widget.trip.currency} ${remaining.abs().toStringAsFixed(0)} over'
+                          : '${widget.trip.currency} ${remaining.toStringAsFixed(0)} left',
+                      style: GoogleFonts.syne(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: isOver ? _tertiary : _secondary),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+          if (budget > 0) ...[
+            const SizedBox(height: 14),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Budget: ${widget.trip.currency} ${budget.toStringAsFixed(0)}',
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withOpacity(0.45))),
+                Text('${(_budgetProgress * 100).toInt()}%',
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: progressColor)),
+              ],
             ),
-            ListTile(
-              leading: const Icon(Icons.delete),
-              title: const Text('Reset Trip Expenses'),
-              onTap: () {
-                Navigator.of(context).pop();
-                _showResetConfirmationDialog(context, tripProvider);
-              },
+            const SizedBox(height: 6),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(99),
+              child: LinearProgressIndicator(
+                value: _budgetProgress,
+                minHeight: 8,
+                backgroundColor:
+                    Theme.of(context).colorScheme.outline.withOpacity(0.15),
+                valueColor: AlwaysStoppedAnimation(progressColor),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ── Category Breakdown ─────────────────────────────────────────────────────
+  Widget _buildCategoryBreakdown(BuildContext context) {
+    final totals = _categoryTotals;
+    if (totals.isEmpty) return const SizedBox.shrink();
+    final sorted = totals.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('By Category',
+            style: GoogleFonts.syne(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Theme.of(context).colorScheme.onSurface)),
+        const SizedBox(height: 12),
+        ...sorted.map((entry) {
+          final cat = categoryFor(entry.key);
+          final pct = _totalSpent > 0 ? entry.value / _totalSpent : 0.0;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: cat.color.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(9),
+                  ),
+                  child: Icon(cat.icon, size: 16, color: cat.color),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(cat.label,
+                              style: const TextStyle(
+                                  fontSize: 13, fontWeight: FontWeight.w500)),
+                          Text(
+                            '${widget.trip.currency} ${entry.value.toStringAsFixed(0)}  (${(pct * 100).toInt()}%)',
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: cat.color),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(99),
+                        child: LinearProgressIndicator(
+                          value: pct,
+                          minHeight: 4,
+                          backgroundColor: Theme.of(context)
+                              .colorScheme
+                              .outline
+                              .withOpacity(0.12),
+                          valueColor: AlwaysStoppedAnimation(cat.color),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  // ── Filter Chips ───────────────────────────────────────────────────────────
+  Widget _buildFilterChips(BuildContext context) {
+    final usedCats = widget.trip.expenses
+        .map((e) => e['category'] as String? ?? 'Other')
+        .toSet()
+        .toList();
+
+    return SizedBox(
+      height: 36,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          _filterChip(context, null, 'All'),
+          ...usedCats.map((cat) => _filterChip(context, cat, cat)),
+        ],
+      ),
+    );
+  }
+
+  Widget _filterChip(BuildContext context, String? catId, String label) {
+    final active = _filterCategory == catId;
+    final cat = catId != null ? categoryFor(catId) : null;
+    return GestureDetector(
+      onTap: () => setState(() => _filterCategory = catId),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: active
+              ? (cat?.color ?? _primary).withOpacity(0.15)
+              : Theme.of(context)
+                  .colorScheme
+                  .surfaceContainerHighest
+                  .withOpacity(0.5),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: active
+                ? (cat?.color ?? _primary)
+                : Theme.of(context).colorScheme.outline.withOpacity(0.3),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: active ? FontWeight.w700 : FontWeight.normal,
+            color: active
+                ? (cat?.color ?? _primary)
+                : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Expense Card ───────────────────────────────────────────────────────────
+  Widget _buildExpenseCard(BuildContext context,
+      Map<String, dynamic> expense, TripProvider tripProvider) {
+    final cat = categoryFor(expense['category'] as String? ?? 'Other');
+    final amount = (expense['amount'] as num).toDouble();
+    final date = _parseDate(expense['date']);
+    final notes = expense['notes'] as String?;
+
+    return Dismissible(
+      key: Key(expense['id'] ?? expense['title']),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        margin: const EdgeInsets.only(bottom: 10),
+        decoration: BoxDecoration(
+          color: _tertiary.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Icon(Icons.delete_rounded, color: _tertiary),
+      ),
+      confirmDismiss: (_) async {
+        return await showDialog<bool>(
+          context: context,
+          builder: (_) => AlertDialog(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20)),
+            title: Text('Delete expense?',
+                style: GoogleFonts.syne(
+                    fontWeight: FontWeight.w700, fontSize: 17)),
+            content: Text('Remove "${expense['title']}" from this trip?'),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Cancel')),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: _tertiary),
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+        );
+      },
+      onDismissed: (_) {
+        final updated = List<Map<String, dynamic>>.from(widget.trip.expenses)
+          ..removeWhere(
+              (e) => e['id'] == expense['id'] && e['title'] == expense['title']);
+        widget.trip.expenses.clear();
+        widget.trip.expenses.addAll(updated);
+        tripProvider.updateTrip(widget.trip);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Removed "${expense['title']}"'),
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+        ));
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+              color:
+                  Theme.of(context).colorScheme.outline.withOpacity(0.25)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: cat.color.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(13),
+              ),
+              child: Icon(cat.icon, color: cat.color, size: 22),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(expense['title'] as String,
+                      style: const TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.w600),
+                      overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 3),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: cat.color.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(cat.label,
+                            style: TextStyle(
+                                fontSize: 10,
+                                color: cat.color,
+                                fontWeight: FontWeight.w600)),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        DateFormat('MMM d, h:mm a').format(date),
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.4)),
+                      ),
+                    ],
+                  ),
+                  if (notes != null && notes.isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Text(notes,
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.4)),
+                        overflow: TextOverflow.ellipsis),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '${widget.trip.currency} ${amount.toStringAsFixed(2)}',
+              style: GoogleFonts.syne(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: _tertiary),
             ),
           ],
         ),
       ),
-      body: Column(
+    );
+  }
+
+  // ── Empty state ────────────────────────────────────────────────────────────
+  Widget _buildEmptyExpenses(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 48),
+      child: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                Text(
-                  'Total Expenses: ${widget.trip.currency} ${totalExpense.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                      fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                if (widget.trip.budget > 0) ...[
-                  Text(
-                    'Budget: ${widget.trip.currency} ${widget.trip.budget.toStringAsFixed(2)}',
-                    style: const TextStyle(fontSize: 18),
-                  ),
-                  const SizedBox(height: 8),
-                  LinearProgressIndicator(
-                    value: totalExpense /
-                        widget.trip.budget.clamp(0.001, double.infinity),
-                    backgroundColor: Colors.grey[300],
-                    color: totalExpense > widget.trip.budget
-                        ? Colors.red
-                        : Colors.green,
-                    minHeight: 10,
-                    borderRadius: BorderRadius.circular(5),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    totalExpense > widget.trip.budget
-                        ? 'Over Budget by: ${widget.trip.currency} ${(totalExpense - widget.trip.budget).toStringAsFixed(2)}'
-                        : 'Remaining Budget: ${widget.trip.currency} ${(widget.trip.budget - totalExpense).toStringAsFixed(2)}',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: totalExpense > widget.trip.budget
-                          ? Colors.red
-                          : Colors.green,
-                    ),
-                  ),
-                ] else ...[
-                  const Text(
-                    'No budget set for this trip.',
-                    style: TextStyle(
-                        fontSize: 16,
-                        fontStyle: FontStyle.italic,
-                        color: Colors.grey),
-                  ),
-                ],
-              ],
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: _primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(22),
             ),
+            child: Icon(Icons.receipt_long_rounded,
+                size: 38, color: _primary.withOpacity(0.6)),
           ),
-          Expanded(
-            child: sortedExpenses.isEmpty
-                ? Center(
-                    child: Text(
-                      'No expenses recorded yet. Add your first expense!',
-                      style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-                    ),
-                  )
-                : ListView.builder(
-                    itemCount: sortedExpenses.length,
-                    itemBuilder: (context, index) {
-                      return Card(
-                        margin: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 4),
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
-                          title: Text(
-                            '${sortedExpenses[index]['title']}',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                            overflow: TextOverflow.ellipsis, // Added ellipsis
-                          ),
-                          subtitle: Text(
-                            '${sortedExpenses[index]['date']} - ${sortedExpenses[index]['category']}',
-                            style: TextStyle(
-                                fontSize: 12, color: Colors.grey[600]),
-                            overflow: TextOverflow.ellipsis, // Added ellipsis
-                          ),
-                          trailing: Text(
-                              '${widget.trip.currency}${sortedExpenses[index]['amount'].toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.bold)),
-                        ),
-                      );
-                    },
-                  ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: ElevatedButton.icon(
-              onPressed: () {
-                _showAddExpenseDialog(
-                    context, tripProvider, widget.trip.currency);
-              },
-              icon: const Icon(Icons.add),
-              label: const Text("Add New Expense"),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.secondary,
-                foregroundColor: Theme.of(context).colorScheme.onSecondary,
-                minimumSize: const Size(double.infinity, 50),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+          const SizedBox(height: 16),
+          Text('No expenses yet',
+              style: GoogleFonts.syne(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Theme.of(context).colorScheme.onSurface)),
+          const SizedBox(height: 8),
+          Text('Tap "Add Expense" to start tracking\nyour spending',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  fontSize: 14,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withOpacity(0.45),
+                  height: 1.5)),
+        ],
+      ),
+    );
+  }
+
+  // ── Insights Sheet ─────────────────────────────────────────────────────────
+  void _showInsightsSheet(BuildContext context) {
+    final totals = _categoryTotals;
+    final budget = widget.trip.budget;
+    final isOver = _totalSpent > budget && budget > 0;
+    final sorted = totals.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        padding: const EdgeInsets.fromLTRB(24, 12, 24, 40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40, height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.outline.withOpacity(0.4),
+                  borderRadius: BorderRadius.circular(99),
+                ),
               ),
             ),
+            Text('Trip Insights 📊',
+                style: GoogleFonts.syne(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: Theme.of(context).colorScheme.onSurface)),
+            const SizedBox(height: 20),
+
+            // Budget status
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: (isOver ? _tertiary : _secondary).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                    color: (isOver ? _tertiary : _secondary).withOpacity(0.3)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isOver ? '⚠️ Over Budget' : budget > 0 ? '✅ Within Budget' : '💡 No Budget Set',
+                    style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: isOver ? _tertiary : _secondary),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    budget > 0
+                        ? 'You\'ve spent ${widget.trip.currency} ${_totalSpent.toStringAsFixed(2)} of ${widget.trip.currency} ${budget.toStringAsFixed(2)}'
+                        : 'Go to Trip Settings to set a budget for better insights',
+                    style: TextStyle(
+                        fontSize: 13,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withOpacity(0.65)),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            if (sorted.isNotEmpty) ...[
+              Text('Top Spending Categories',
+                  style: GoogleFonts.syne(
+                      fontSize: 15, fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.onSurface)),
+              const SizedBox(height: 12),
+              ...sorted.take(4).map((e) {
+                final cat = categoryFor(e.key);
+                final pct = _totalSpent > 0 ? e.value / _totalSpent : 0.0;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Row(
+                    children: [
+                      Icon(cat.icon, size: 18, color: cat.color),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(cat.label,
+                            style: const TextStyle(
+                                fontSize: 13, fontWeight: FontWeight.w500)),
+                      ),
+                      Text(
+                        '${widget.trip.currency} ${e.value.toStringAsFixed(0)} · ${(pct * 100).toInt()}%',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: cat.color),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Trip Settings Sheet ────────────────────────────────────────────────────
+  void _showTripSettingsSheet(
+      BuildContext context, TripProvider tripProvider) {
+    final budgetCtrl = TextEditingController(
+        text: widget.trip.budget > 0
+            ? widget.trip.budget.toStringAsFixed(0)
+            : '');
+    String currency = widget.trip.currency;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setS) {
+          final pad = MediaQuery.of(ctx).viewInsets.bottom;
+          return Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            padding: EdgeInsets.fromLTRB(24, 12, 24, 24 + pad),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40, height: 4,
+                      margin: const EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.outline.withOpacity(0.4),
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                    ),
+                  ),
+                  Text('Trip Settings ⚙️',
+                      style: GoogleFonts.syne(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: Theme.of(context).colorScheme.onSurface)),
+                  const SizedBox(height: 22),
+                  _sheetLabel('Budget'),
+                  TextField(
+                    controller: budgetCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      hintText: '0.00',
+                      prefixIcon:
+                          const Icon(Icons.wallet_rounded, size: 20),
+                      prefixText: '$currency ',
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _sheetLabel('Currency'),
+                  DropdownButtonFormField<String>(
+                    value: currency,
+                    decoration: const InputDecoration(
+                        contentPadding: EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12)),
+                    onChanged: (v) { if (v != null) setS(() => currency = v); },
+                    items: ['BDT', 'USD', 'EUR', 'GBP', 'INR', 'JPY', 'AUD']
+                        .map((c) => DropdownMenuItem(
+                            value: c, child: Text(c)))
+                        .toList(),
+                  ),
+                  const SizedBox(height: 26),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        tripProvider.updateCurrentTrip(
+                          trip: widget.trip,
+                          budget: double.tryParse(budgetCtrl.text),
+                          currency: currency,
+                        );
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          content: const Text('Trip settings saved'),
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          margin: const EdgeInsets.all(16),
+                        ));
+                      },
+                      style: ElevatedButton.styleFrom(
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 16)),
+                      child: const Text('Save Changes'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showResetConfirmation(
+      BuildContext context, TripProvider tripProvider) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Clear All Expenses?',
+            style: GoogleFonts.syne(
+                fontWeight: FontWeight.w700, fontSize: 18)),
+        content: const Text(
+            'This will permanently remove all expenses for this trip.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              tripProvider.resetCurrentTripExpenses(widget.trip);
+              Navigator.pop(context);
+            },
+            style:
+                ElevatedButton.styleFrom(backgroundColor: _tertiary),
+            child: const Text('Clear All'),
           ),
         ],
       ),
     );
   }
 
-  void _showAddExpenseDialog(
-      BuildContext context, TripProvider tripProvider, String tripCurrency) {
-    _expenseTitleController.clear();
-    _expenseAmountController.clear();
-    _foreignAmountController.clear();
-    selectedCategory = categories.first;
+  void _shareTrip(BuildContext context) {
+    final buffer = StringBuffer();
+    buffer.writeln('🗺️ Trip: ${widget.trip.name}');
+    buffer.writeln('📍 ${widget.trip.destination}');
+    buffer.writeln(
+        '📅 ${DateFormat('MMM d').format(widget.trip.startDate)} – ${DateFormat('MMM d, yyyy').format(widget.trip.endDate)}');
+    buffer.writeln(
+        '💰 Total Spent: ${widget.trip.currency} ${_totalSpent.toStringAsFixed(2)}');
+    if (widget.trip.budget > 0) {
+      buffer.writeln(
+          '🎯 Budget: ${widget.trip.currency} ${widget.trip.budget.toStringAsFixed(2)}');
+    }
+    buffer.writeln('\nExpenses:');
+    for (final e in widget.trip.expenses) {
+      buffer.writeln(
+          '• ${e['title']}: ${widget.trip.currency} ${(e['amount'] as num).toStringAsFixed(2)}');
+    }
+    Share.share(buffer.toString(), subject: 'Tour Buddy – ${widget.trip.name}');
+  }
 
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Add Expense"),
-          content: StatefulBuilder(
-            builder: (BuildContext context, StateSetter setState) {
-              return SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: _expenseTitleController,
-                      decoration: InputDecoration(
-                        labelText: 'Expense Title',
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8)),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _expenseAmountController,
-                      decoration: InputDecoration(
-                        labelText: 'Amount ($tripCurrency)',
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8)),
-                      ),
-                      keyboardType: TextInputType.number,
-                    ),
-                    const SizedBox(height: 16),
-                    const Text('Or convert from foreign currency:',
-                        style: TextStyle(fontSize: 12, color: Colors.grey)),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _foreignAmountController,
-                            decoration: InputDecoration(
-                              labelText: 'Foreign Amount',
-                              border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8)),
-                            ),
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        DropdownButton<String>(
-                          value: _foreignCurrency,
-                          onChanged: (String? newValue) {
-                            if (newValue != null) {
-                              setState(() {
-                                _foreignCurrency = newValue;
-                              });
-                            }
-                          },
-                          items: <String>['USD', 'EUR', 'GBP', 'INR', 'BDT']
-                              .map<DropdownMenuItem<String>>((String value) {
-                            return DropdownMenuItem<String>(
-                              value: value,
-                              child: Text(value),
-                            );
-                          }).toList(),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      initialValue: selectedCategory,
-                      decoration: InputDecoration(
-                        labelText: 'Category',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
-                      ),
-                      onChanged: (String? newValue) {
-                        if (newValue != null) {
-                          setState(() {
-                            selectedCategory = newValue;
-                          });
-                        }
-                      },
-                      items: categories
-                          .map<DropdownMenuItem<String>>((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value),
-                        );
-                      }).toList(),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text("Cancel"),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                double? amount = double.tryParse(_expenseAmountController.text);
-                double? foreignAmount =
-                    double.tryParse(_foreignAmountController.text);
-
-                if (_expenseTitleController.text.isNotEmpty &&
-                    (amount != null || foreignAmount != null)) {
-                  double finalAmount = amount ?? 0.0;
-                  if (foreignAmount != null &&
-                      _foreignCurrency != tripCurrency) {
-                    CurrencyService currencyService = CurrencyService();
-                    try {
-                      finalAmount += await currencyService.convertCurrency(
-                          foreignAmount, _foreignCurrency, tripCurrency);
-                    } catch (e) {
-                      debugPrint(
-                          'Error during currency conversion: $e'); // Use debugPrint
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text(
-                                'Currency conversion failed. Using entered amount directly.')),
-                      );
-                    }
-                  } else if (foreignAmount != null &&
-                      _foreignCurrency == tripCurrency) {
-                    finalAmount += foreignAmount;
-                  }
-
-                  tripProvider.addExpenseToCurrentTrip(
-                    widget.trip, // Pass the current trip object
-                    {
-                      'title': _expenseTitleController.text,
-                      'amount': finalAmount,
-                      // Format date consistently with leading zeros
-                      'date':
-                          DateFormat("yyyy-MM-dd HH:mm").format(DateTime.now()),
-                      'category': selectedCategory,
-                    },
-                  );
-                  _expenseTitleController.clear();
-                  _expenseAmountController.clear();
-                  _foreignAmountController.clear();
-                  Navigator.of(context).pop();
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text(
-                            'Please enter an expense title and at least one amount.')),
-                  );
-                }
-              },
-              child: const Text("Add"),
-            ),
-          ],
-        );
-      },
+  PopupMenuItem<SortOption> _menuItem(
+      SortOption val, String label, IconData icon) {
+    return PopupMenuItem(
+      value: val,
+      child: Row(
+        children: [
+          Icon(icon, size: 18,
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
+          const SizedBox(width: 12),
+          Text(label, style: const TextStyle(fontSize: 14)),
+        ],
+      ),
     );
   }
 
-  void _shareTrip(BuildContext context, Trip trip) {
-    String tripDetails = "🌟 Tour Buddy Trip: ${trip.name} 🌟\n\n";
-    tripDetails +=
-        "🗓️ Dates: ${DateFormat('yyyy-MM-dd').format(trip.startDate)} - ${DateFormat('yyyy-MM-dd').format(trip.endDate)}\n";
-    tripDetails +=
-        "💰 Budget: ${trip.currency}${trip.budget.toStringAsFixed(2)}\n\n";
-
-    double total = trip.expenses.fold(0, (sum, item) => sum + item['amount']);
-    tripDetails +=
-        "📊 Total Expenses: ${trip.currency}${total.toStringAsFixed(2)}\n\n";
-
-    if (trip.expenses.isNotEmpty) {
-      tripDetails += "Detailed Expenses:\n";
-      for (var expense in trip.expenses) {
-        tripDetails +=
-            "  - ${expense['title']} (${expense['category']}): ${trip.currency}${expense['amount'].toStringAsFixed(2)}\n";
-      }
-    } else {
-      tripDetails += "No expenses recorded for this trip yet! 📝";
-    }
-
-    Share.share(tripDetails, subject: 'My Trip: ${trip.name}');
-  }
-
-  void _showTripSettingsDialog(BuildContext context, Trip trip) {
-    final tripProvider = Provider.of<TripProvider>(context, listen: false);
-    final TextEditingController currentBudgetController =
-        TextEditingController(text: trip.budget.toStringAsFixed(2));
-    String selectedCurrency = trip.currency;
-    DateTime tempStartDate = trip.startDate;
-    DateTime tempEndDate = trip.endDate;
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Trip Settings for ${trip.name}'),
-          content: StatefulBuilder(
-            builder: (BuildContext context, StateSetter setState) {
-              return SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: currentBudgetController,
-                      decoration:
-                          const InputDecoration(labelText: 'Trip Budget'),
-                      keyboardType: TextInputType.number,
-                    ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      initialValue: selectedCurrency,
-                      decoration: InputDecoration(
-                        labelText: 'Trip Currency',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
-                      ),
-                      onChanged: (String? newValue) {
-                        if (newValue != null) {
-                          setState(() {
-                            selectedCurrency = newValue;
-                          });
-                        }
-                      },
-                      items: <String>['BDT', 'USD', 'EUR', 'GBP', 'INR', 'BDT']
-                          .map<DropdownMenuItem<String>>((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value),
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Text(
-                            'Start Date: ${DateFormat('yyyy-MM-dd').format(tempStartDate)}'),
-                        const Spacer(),
-                        ElevatedButton(
-                          onPressed: () async {
-                            final DateTime? picked = await showDatePicker(
-                              context: context,
-                              initialDate: tempStartDate,
-                              firstDate: DateTime(2000),
-                              lastDate: DateTime(2101),
-                            );
-                            if (picked != null && picked != tempStartDate) {
-                              setState(() {
-                                tempStartDate = picked;
-                                if (tempEndDate.isBefore(tempStartDate)) {
-                                  tempEndDate = tempStartDate
-                                      .add(const Duration(days: 7));
-                                }
-                              });
-                            }
-                          },
-                          child: const Text('Change'),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Text(
-                            'End Date: ${DateFormat('yyyy-MM-dd').format(tempEndDate)}'),
-                        const Spacer(),
-                        ElevatedButton(
-                          onPressed: () async {
-                            final DateTime? picked = await showDatePicker(
-                              context: context,
-                              initialDate: tempEndDate,
-                              firstDate: DateTime(2000),
-                              lastDate: DateTime(2101),
-                            );
-                            if (picked != null && picked != tempEndDate) {
-                              setState(() {
-                                tempEndDate = picked;
-                                if (tempStartDate.isAfter(tempEndDate)) {
-                                  tempStartDate = tempEndDate
-                                      .subtract(const Duration(days: 7));
-                                }
-                              });
-                            }
-                          },
-                          child: const Text('Change'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                // Pass the trip object to updateCurrentTrip
-                tripProvider.updateCurrentTrip(
-                  trip: trip,
-                  budget: double.tryParse(currentBudgetController.text),
-                  currency: selectedCurrency,
-                  startDate: tempStartDate,
-                  endDate: tempEndDate,
-                );
-                Navigator.of(context).pop();
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showResetConfirmationDialog(
-      BuildContext context, TripProvider tripProvider) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Reset Expenses?'),
-          content: const Text(
-              'Are you sure you want to clear all expenses for this trip? This action cannot be undone.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                tripProvider.resetCurrentTripExpenses(widget.trip);
-                Navigator.of(context).pop();
-              },
-              child: const Text('Reset', style: TextStyle(color: Colors.red)),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showTripInsightsDialog(BuildContext context, Trip trip) {
-    Map<String, double> categoryTotals = {};
-    for (var expense in trip.expenses) {
-      String category = expense['category'] ?? 'Uncategorized';
-      double amount = expense['amount'] ?? 0.0;
-      categoryTotals.update(category, (value) => value + amount,
-          ifAbsent: () => amount);
-    }
-
-    double totalExpense =
-        trip.expenses.fold(0, (sum, item) => sum + item['amount']);
-
-    String insights = '';
-    if (totalExpense == 0) {
-      insights = 'No expenses recorded yet to provide insights.';
-    } else {
-      insights +=
-          'Total spending: ${trip.currency}${totalExpense.toStringAsFixed(2)}\n\n';
-
-      if (trip.budget > 0) {
-        if (totalExpense > trip.budget) {
-          insights +=
-              '🚨 You are **${trip.currency}${(totalExpense - trip.budget).toStringAsFixed(2)}** over your budget! Consider cutting down on non-essential spending.\n\n';
-        } else {
-          insights +=
-              '✅ You are **${trip.currency}${(trip.budget - totalExpense).toStringAsFixed(2)}** under your budget. Great job!\n\n';
-        }
-      } else {
-        insights +=
-            '💡 Set a budget in Trip Settings to get more detailed budget insights!\n\n';
-      }
-
-      if (categoryTotals.isNotEmpty) {
-        insights += 'Spending by Category:\n';
-        var sortedCategories = categoryTotals.entries.toList()
-          ..sort((a, b) => b.value.compareTo(a.value));
-
-        for (var entry in sortedCategories) {
-          insights +=
-              '- ${entry.key}: ${trip.currency}${entry.value.toStringAsFixed(2)} (${(entry.value / totalExpense * 100).toStringAsFixed(1)}%)\n';
-        }
-
-        if (sortedCategories.isNotEmpty &&
-            sortedCategories.first.value / totalExpense > 0.3) {
-          insights +=
-              '\nConsider reviewing your **${sortedCategories.first.key}** expenses, as they account for a significant portion of your spending.';
-        }
-      }
-    }
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Trip Insights'),
-          content: SingleChildScrollView(
-            child: Text(insights),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('OK'),
-            ),
-          ],
-        );
-      },
+  Widget _sheetLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.5,
+          color:
+              Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+        ),
+      ),
     );
   }
 }
