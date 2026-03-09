@@ -51,9 +51,40 @@ class ThemeProvider with ChangeNotifier {
 
   ThemeData get themeData {
     final base = _isDarkMode ? _darkTheme : _lightTheme;
-    return base.copyWith(
-      textTheme: base.textTheme.apply(fontSizeFactor: _fontSizeScale),
+    if (_fontSizeScale == 1.0) return base;
+    final scaled = base.textTheme.copyWith(
+      displayLarge: base.textTheme.displayLarge?.copyWith(
+          fontSize: (base.textTheme.displayLarge?.fontSize ?? 57) * _fontSizeScale),
+      displayMedium: base.textTheme.displayMedium?.copyWith(
+          fontSize: (base.textTheme.displayMedium?.fontSize ?? 45) * _fontSizeScale),
+      displaySmall: base.textTheme.displaySmall?.copyWith(
+          fontSize: (base.textTheme.displaySmall?.fontSize ?? 36) * _fontSizeScale),
+      headlineLarge: base.textTheme.headlineLarge?.copyWith(
+          fontSize: (base.textTheme.headlineLarge?.fontSize ?? 32) * _fontSizeScale),
+      headlineMedium: base.textTheme.headlineMedium?.copyWith(
+          fontSize: (base.textTheme.headlineMedium?.fontSize ?? 28) * _fontSizeScale),
+      headlineSmall: base.textTheme.headlineSmall?.copyWith(
+          fontSize: (base.textTheme.headlineSmall?.fontSize ?? 24) * _fontSizeScale),
+      titleLarge: base.textTheme.titleLarge?.copyWith(
+          fontSize: (base.textTheme.titleLarge?.fontSize ?? 22) * _fontSizeScale),
+      titleMedium: base.textTheme.titleMedium?.copyWith(
+          fontSize: (base.textTheme.titleMedium?.fontSize ?? 16) * _fontSizeScale),
+      titleSmall: base.textTheme.titleSmall?.copyWith(
+          fontSize: (base.textTheme.titleSmall?.fontSize ?? 14) * _fontSizeScale),
+      bodyLarge: base.textTheme.bodyLarge?.copyWith(
+          fontSize: (base.textTheme.bodyLarge?.fontSize ?? 16) * _fontSizeScale),
+      bodyMedium: base.textTheme.bodyMedium?.copyWith(
+          fontSize: (base.textTheme.bodyMedium?.fontSize ?? 14) * _fontSizeScale),
+      bodySmall: base.textTheme.bodySmall?.copyWith(
+          fontSize: (base.textTheme.bodySmall?.fontSize ?? 12) * _fontSizeScale),
+      labelLarge: base.textTheme.labelLarge?.copyWith(
+          fontSize: (base.textTheme.labelLarge?.fontSize ?? 14) * _fontSizeScale),
+      labelMedium: base.textTheme.labelMedium?.copyWith(
+          fontSize: (base.textTheme.labelMedium?.fontSize ?? 12) * _fontSizeScale),
+      labelSmall: base.textTheme.labelSmall?.copyWith(
+          fontSize: (base.textTheme.labelSmall?.fontSize ?? 11) * _fontSizeScale),
     );
+    return base.copyWith(textTheme: scaled);
   }
 
   static final _darkTheme = ThemeData(

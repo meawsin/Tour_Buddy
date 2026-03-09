@@ -47,17 +47,90 @@ class TripProvider with ChangeNotifier {
       if (googleUser == null) return; // User cancelled
 
       final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication; // ✅ Fixed: removed extra !
+          await googleUser.authentication;
 
       final AuthCredential credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      await _auth.signInWithCredential(credential);
-      print("Signed in with Google: ${_auth.currentUser?.displayName}");
+      final currentUser = _auth.currentUser;
+
+      if (currentUser != null && currentUser.isAnonymous) {
+        // Link anonymous account to Google — preserves all existing trip data
+        try {
+          await currentUser.linkWithCredential(credential);
+          print("Linked anonymous account to Google: ${_auth.currentUser?.displayName}");
+        } on FirebaseAuthException catch (e) {
+          if (e.code == 'credential-already-in-use') {
+            // Google account already exists — migrate trips then sign in
+            print("Google account exists, migrating trips...");
+            await _migrateTripsToGoogle(credential);
+          } else {
+            rethrow;
+          }
+        }
+      } else {
+        // Already signed in with Google or no user — just sign in normally
+        await _auth.signInWithCredential(credential);
+        print("Signed in with Google: ${_auth.currentUser?.displayName}");
+      }
     } catch (e) {
       print("Error signing in with Google: $e");
+    }
+  }
+
+  /// Copies trips from the anonymous account to the Google account
+  Future<void> _migrateTripsToGoogle(AuthCredential credential) async {
+    final anonymousUid = _auth.currentUser?.uid;
+
+    // Fetch anonymous trips before signing out
+    List<Map<String, dynamic>> tripsToMigrate = [];
+    if (anonymousUid != null) {
+      try {
+        final snapshot = await _firestore
+            .collection('trips')
+            .doc(anonymousUid)
+            .collection('userTrips')
+            .get();
+        tripsToMigrate = snapshot.docs.map((d) => d.data()).toList();
+      } catch (e) {
+        print("Could not fetch anonymous trips: $e");
+      }
+    }
+
+    // Sign in with Google credential
+    await _auth.signInWithCredential(credential);
+    final googleUid = _auth.currentUser?.uid;
+    print("Migrating ${tripsToMigrate.length} trips to Google account ($googleUid)");
+
+    // Write trips to new Google account
+    for (final trip in tripsToMigrate) {
+      try {
+        await _firestore
+            .collection('trips')
+            .doc(googleUid)
+            .collection('userTrips')
+            .add(trip);
+      } catch (e) {
+        print("Error migrating trip: $e");
+      }
+    }
+
+    // Clean up old anonymous data
+    if (anonymousUid != null && anonymousUid != googleUid) {
+      try {
+        final oldDocs = await _firestore
+            .collection('trips')
+            .doc(anonymousUid)
+            .collection('userTrips')
+            .get();
+        for (final doc in oldDocs.docs) {
+          await doc.reference.delete();
+        }
+      } catch (e) {
+        print("Could not clean up anonymous trips: $e");
+      }
     }
   }
 

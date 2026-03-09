@@ -6,9 +6,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:uuid/uuid.dart';
 import '../providers/trip_provider.dart';
 import '../models/trip.dart';
-import 'settings_screen.dart';
-import 'start_screen.dart';
-import 'past_trips_screen.dart';
 
 // ── Category definitions ────────────────────────────────────────────────────
 class ExpenseCategory {
@@ -102,17 +99,18 @@ class _ExpenseScreenState extends State<ExpenseScreen>
     try { return DateTime.parse(v.toString()); } catch (_) { return DateTime.now(); }
   }
 
-  double get _totalSpent =>
-      widget.trip.expenses.fold(0, (s, e) => s + (e['amount'] as num));
+  double _totalSpentOf(Trip t) =>
+      t.expenses.fold(0, (s, e) => s + (e['amount'] as num));
 
-  double get _budgetProgress =>
-      widget.trip.budget > 0
-          ? (_totalSpent / widget.trip.budget).clamp(0.0, 1.0)
-          : 0.0;
+  double _budgetProgressOf(Trip t) =>
+      t.budget > 0 ? (_totalSpentOf(t) / t.budget).clamp(0.0, 1.0) : 0.0;
 
-  Map<String, double> get _categoryTotals {
+  // keep legacy getter for share/insights that use widget.trip directly
+  double get _totalSpent => _totalSpentOf(widget.trip);
+
+  Map<String, double> _categoryTotalsOf(Trip t) {
     final Map<String, double> map = {};
-    for (final e in widget.trip.expenses) {
+    for (final e in t.expenses) {
       final cat = e['category'] as String? ?? 'Other';
       map[cat] = (map[cat] ?? 0) + (e['amount'] as num);
     }
@@ -328,10 +326,16 @@ class _ExpenseScreenState extends State<ExpenseScreen>
   @override
   Widget build(BuildContext context) {
     final tripProvider = Provider.of<TripProvider>(context);
-    final expenses = widget.trip.expenses;
+    // Use live trip from provider so UI updates instantly after adding expense
+    final liveTrip = tripProvider.trips.firstWhere(
+      (t) => t.id == widget.trip.id,
+      orElse: () => widget.trip,
+    );
+    final expenses = liveTrip.expenses;
     final sorted = _sorted(expenses);
-    final budget = widget.trip.budget;
-    final remaining = budget - _totalSpent;
+    final budget = liveTrip.budget;
+    final totalSpent = _totalSpentOf(liveTrip);
+    final remaining = budget - totalSpent;
 
     return Scaffold(
       body: CustomScrollView(
@@ -408,16 +412,8 @@ class _ExpenseScreenState extends State<ExpenseScreen>
                   ),
                 ),
               ),
-              titlePadding:
-                  const EdgeInsets.only(left: 56, bottom: 16, right: 120),
-              title: Text(
-                widget.trip.name,
-                style: GoogleFonts.syne(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: Theme.of(context).colorScheme.onSurface),
-                overflow: TextOverflow.ellipsis,
-              ),
+              titlePadding: EdgeInsets.zero,
+              title: const SizedBox.shrink(), // title shown in background instead
             ),
             actions: [
               IconButton(
@@ -460,13 +456,13 @@ class _ExpenseScreenState extends State<ExpenseScreen>
               delegate: SliverChildListDelegate([
 
                 // ── Budget Card ────────────────────────────────────
-                _buildBudgetCard(context, budget, remaining),
+                _buildBudgetCard(context, liveTrip, budget, totalSpent, remaining),
 
                 const SizedBox(height: 20),
 
                 // ── Category Breakdown ─────────────────────────────
                 if (expenses.isNotEmpty) ...[
-                  _buildCategoryBreakdown(context),
+                  _buildCategoryBreakdown(context, liveTrip),
                   const SizedBox(height: 20),
                 ],
 
@@ -500,7 +496,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
 
                 // ── Category filter chips ──────────────────────────
                 if (expenses.isNotEmpty)
-                  _buildFilterChips(context),
+                  _buildFilterChips(context, expenses),
 
                 const SizedBox(height: 12),
 
@@ -550,7 +546,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
 
   // ── Budget Card ────────────────────────────────────────────────────────────
   Widget _buildBudgetCard(
-      BuildContext context, double budget, double remaining) {
+      BuildContext context, Trip liveTrip, double budget, double totalSpent, double remaining) {
     final isOver = remaining < 0 && budget > 0;
     final progressColor = isOver ? _tertiary : _primary;
 
@@ -585,7 +581,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
                                 .withOpacity(0.55))),
                     const SizedBox(height: 4),
                     Text(
-                      '${widget.trip.currency} ${_totalSpent.toStringAsFixed(2)}',
+                      '${liveTrip.currency} ${totalSpent.toStringAsFixed(2)}',
                       style: GoogleFonts.syne(
                           fontSize: 28,
                           fontWeight: FontWeight.w800,
@@ -606,8 +602,8 @@ class _ExpenseScreenState extends State<ExpenseScreen>
                     const SizedBox(height: 4),
                     Text(
                       isOver
-                          ? '${widget.trip.currency} ${remaining.abs().toStringAsFixed(0)} over'
-                          : '${widget.trip.currency} ${remaining.toStringAsFixed(0)} left',
+                          ? '${liveTrip.currency} ${remaining.abs().toStringAsFixed(0)} over'
+                          : '${liveTrip.currency} ${remaining.toStringAsFixed(0)} left',
                       style: GoogleFonts.syne(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
@@ -622,14 +618,14 @@ class _ExpenseScreenState extends State<ExpenseScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Budget: ${widget.trip.currency} ${budget.toStringAsFixed(0)}',
+                Text('Budget: ${liveTrip.currency} ${budget.toStringAsFixed(0)}',
                     style: TextStyle(
                         fontSize: 11,
                         color: Theme.of(context)
                             .colorScheme
                             .onSurface
                             .withOpacity(0.45))),
-                Text('${(_budgetProgress * 100).toInt()}%',
+                Text('${(_budgetProgressOf(liveTrip) * 100).toInt()}%',
                     style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
@@ -640,7 +636,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
             ClipRRect(
               borderRadius: BorderRadius.circular(99),
               child: LinearProgressIndicator(
-                value: _budgetProgress,
+                value: _budgetProgressOf(liveTrip),
                 minHeight: 8,
                 backgroundColor:
                     Theme.of(context).colorScheme.outline.withOpacity(0.15),
@@ -654,8 +650,8 @@ class _ExpenseScreenState extends State<ExpenseScreen>
   }
 
   // ── Category Breakdown ─────────────────────────────────────────────────────
-  Widget _buildCategoryBreakdown(BuildContext context) {
-    final totals = _categoryTotals;
+  Widget _buildCategoryBreakdown(BuildContext context, Trip liveTrip) {
+    final totals = _categoryTotalsOf(liveTrip);
     if (totals.isEmpty) return const SizedBox.shrink();
     final sorted = totals.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
@@ -730,8 +726,8 @@ class _ExpenseScreenState extends State<ExpenseScreen>
   }
 
   // ── Filter Chips ───────────────────────────────────────────────────────────
-  Widget _buildFilterChips(BuildContext context) {
-    final usedCats = widget.trip.expenses
+  Widget _buildFilterChips(BuildContext context, List<Map<String, dynamic>> expenses) {
+    final usedCats = expenses
         .map((e) => e['category'] as String? ?? 'Other')
         .toSet()
         .toList();
@@ -831,12 +827,13 @@ class _ExpenseScreenState extends State<ExpenseScreen>
         );
       },
       onDismissed: (_) {
-        final updated = List<Map<String, dynamic>>.from(widget.trip.expenses)
+        final currentTrip = tripProvider.trips.firstWhere((t) => t.id == widget.trip.id, orElse: () => widget.trip);
+        final updated = List<Map<String, dynamic>>.from(currentTrip.expenses)
           ..removeWhere(
               (e) => e['id'] == expense['id'] && e['title'] == expense['title']);
-        widget.trip.expenses.clear();
-        widget.trip.expenses.addAll(updated);
-        tripProvider.updateTrip(widget.trip);
+        currentTrip.expenses.clear();
+        currentTrip.expenses.addAll(updated);
+        tripProvider.updateTrip(currentTrip);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Removed "${expense['title']}"'),
           behavior: SnackBarBehavior.floating,
@@ -970,9 +967,12 @@ class _ExpenseScreenState extends State<ExpenseScreen>
 
   // ── Insights Sheet ─────────────────────────────────────────────────────────
   void _showInsightsSheet(BuildContext context) {
-    final totals = _categoryTotals;
-    final budget = widget.trip.budget;
-    final isOver = _totalSpent > budget && budget > 0;
+    final tripProvider = Provider.of<TripProvider>(context, listen: false);
+    final liveTrip = tripProvider.trips.firstWhere((t) => t.id == widget.trip.id, orElse: () => widget.trip);
+    final totals = _categoryTotalsOf(liveTrip);
+    final budget = liveTrip.budget;
+    final liveTotal = _totalSpentOf(liveTrip);
+    final isOver = liveTotal > budget && budget > 0;
     final sorted = totals.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
@@ -1030,7 +1030,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
                   const SizedBox(height: 6),
                   Text(
                     budget > 0
-                        ? 'You\'ve spent ${widget.trip.currency} ${_totalSpent.toStringAsFixed(2)} of ${widget.trip.currency} ${budget.toStringAsFixed(2)}'
+                        ? 'You\'ve spent ${liveTrip.currency} ${liveTotal.toStringAsFixed(2)} of ${liveTrip.currency} ${budget.toStringAsFixed(2)}'
                         : 'Go to Trip Settings to set a budget for better insights',
                     style: TextStyle(
                         fontSize: 13,
@@ -1052,7 +1052,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
               const SizedBox(height: 12),
               ...sorted.take(4).map((e) {
                 final cat = categoryFor(e.key);
-                final pct = _totalSpent > 0 ? e.value / _totalSpent : 0.0;
+                final pct = liveTotal > 0 ? e.value / liveTotal : 0.0;
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 10),
                   child: Row(
