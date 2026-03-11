@@ -22,7 +22,7 @@ class SettingsScreen extends StatelessWidget {
         children: [
 
           // ── Appearance ──────────────────────────────────────────────
-          _sectionHeader(context, '🎨 Appearance'),
+          _sectionHeader(context, 'Appearance'),
           const SizedBox(height: 10),
           _settingsCard(context, [
             _buildSwitchTile(
@@ -38,7 +38,7 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(height: 20),
 
           // ── Font Size ───────────────────────────────────────────────
-          _sectionHeader(context, '🔤 Font Size'),
+          _sectionHeader(context, 'Font Size'),
           const SizedBox(height: 10),
           _settingsCard(context, [
             Padding(
@@ -105,7 +105,7 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(height: 20),
 
           // ── Currency ────────────────────────────────────────────────
-          _sectionHeader(context, '💰 Default Currency'),
+          _sectionHeader(context, 'Default Currency'),
           const SizedBox(height: 10),
           _settingsCard(context, [
             Padding(
@@ -192,7 +192,7 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(height: 20),
 
           // ── About ───────────────────────────────────────────────────
-          _sectionHeader(context, 'ℹ️ About'),
+          _sectionHeader(context, 'About'),
           const SizedBox(height: 10),
           _settingsCard(context, [
             _buildInfoTile(context,
