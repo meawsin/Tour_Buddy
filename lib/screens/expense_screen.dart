@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:uuid/uuid.dart';
 import '../providers/trip_provider.dart';
 import '../models/trip.dart';
+import 'analytics_screen.dart';
 
 // ── Category definitions ────────────────────────────────────────────────────
 class ExpenseCategory {
@@ -116,6 +117,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
     }
     return map;
   }
+
 
   // ── Add Expense Sheet ──────────────────────────────────────────────────────
   void _showAddExpenseSheet() {
@@ -315,7 +317,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
         .addExpenseToCurrentTrip(widget.trip, expense);
     Navigator.pop(ctx);
     ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
-      content: Text('✓ ${title} added'),
+      content: Text('✓ $title added'),
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       margin: const EdgeInsets.all(16),
@@ -418,8 +420,13 @@ class _ExpenseScreenState extends State<ExpenseScreen>
             actions: [
               IconButton(
                 icon: const Icon(Icons.bar_chart_rounded),
-                tooltip: 'Insights',
-                onPressed: () => _showInsightsSheet(context),
+                tooltip: 'Analytics',
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => AnalyticsScreen(trip: widget.trip),
+                  ),
+                ),
               ),
               IconButton(
                 icon: const Icon(Icons.share_rounded),
@@ -961,124 +968,6 @@ class _ExpenseScreenState extends State<ExpenseScreen>
                       .withOpacity(0.45),
                   height: 1.5)),
         ],
-      ),
-    );
-  }
-
-  // ── Insights Sheet ─────────────────────────────────────────────────────────
-  void _showInsightsSheet(BuildContext context) {
-    final tripProvider = Provider.of<TripProvider>(context, listen: false);
-    final liveTrip = tripProvider.trips.firstWhere((t) => t.id == widget.trip.id, orElse: () => widget.trip);
-    final totals = _categoryTotalsOf(liveTrip);
-    final budget = liveTrip.budget;
-    final liveTotal = _totalSpentOf(liveTrip);
-    final isOver = liveTotal > budget && budget > 0;
-    final sorted = totals.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        padding: const EdgeInsets.fromLTRB(24, 12, 24, 40),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40, height: 4,
-                margin: const EdgeInsets.only(bottom: 20),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.outline.withOpacity(0.4),
-                  borderRadius: BorderRadius.circular(99),
-                ),
-              ),
-            ),
-            Text('Trip Insights 📊',
-                style: GoogleFonts.syne(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    color: Theme.of(context).colorScheme.onSurface)),
-            const SizedBox(height: 20),
-
-            // Budget status
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: (isOver ? _tertiary : _secondary).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                    color: (isOver ? _tertiary : _secondary).withOpacity(0.3)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    isOver ? '⚠️ Over Budget' : budget > 0 ? '✅ Within Budget' : '💡 No Budget Set',
-                    style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: isOver ? _tertiary : _secondary),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    budget > 0
-                        ? 'You\'ve spent ${liveTrip.currency} ${liveTotal.toStringAsFixed(2)} of ${liveTrip.currency} ${budget.toStringAsFixed(2)}'
-                        : 'Go to Trip Settings to set a budget for better insights',
-                    style: TextStyle(
-                        fontSize: 13,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withOpacity(0.65)),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            if (sorted.isNotEmpty) ...[
-              Text('Top Spending Categories',
-                  style: GoogleFonts.syne(
-                      fontSize: 15, fontWeight: FontWeight.w600,
-                      color: Theme.of(context).colorScheme.onSurface)),
-              const SizedBox(height: 12),
-              ...sorted.take(4).map((e) {
-                final cat = categoryFor(e.key);
-                final pct = liveTotal > 0 ? e.value / liveTotal : 0.0;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: Row(
-                    children: [
-                      Icon(cat.icon, size: 18, color: cat.color),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(cat.label,
-                            style: const TextStyle(
-                                fontSize: 13, fontWeight: FontWeight.w500)),
-                      ),
-                      Text(
-                        '${widget.trip.currency} ${e.value.toStringAsFixed(0)} · ${(pct * 100).toInt()}%',
-                        style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: cat.color),
-                      ),
-                    ],
-                  ),
-                );
-              }),
-            ],
-            const SizedBox(height: 8),
-          ],
-        ),
       ),
     );
   }

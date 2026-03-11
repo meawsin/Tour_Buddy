@@ -23,6 +23,7 @@ dependencies:
   http: ^1.2.1
   google_fonts: ^7.0.0
   local_auth: ^3.0.0
+  fl_chart: ^0.70.2
 
 dev_dependencies:
   flutter_launcher_icons: ^0.14.4

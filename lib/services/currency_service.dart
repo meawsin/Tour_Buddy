@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class CurrencyService {
@@ -16,12 +17,12 @@ class CurrencyService {
               .map((key, value) => MapEntry(key, value.toDouble())));
         }
       }
-      throw Exception('Failed to load exchange rates: ${response.statusCode}');
+      throw Exception('Failed to load exchange rates: \${response.statusCode}');
     } catch (e) {
-      print('Error fetching exchange rates: $e');
+      debugPrint('Error fetching exchange rates: \$e');
       return {
         'USD': 1.0,
-        'BDT': 120.0, // Example rate
+        'BDT': 120.0,
         'EUR': 0.92,
         'GBP': 0.79,
         'INR': 83.0,
@@ -31,10 +32,8 @@ class CurrencyService {
 
   Future<double> convertCurrency(
       double amount, String fromCurrency, String toCurrency) async {
-    if (fromCurrency == toCurrency) {
-      return amount;
-    }
-    Map<String, double> rates = await getExchangeRates(fromCurrency);
+    if (fromCurrency == toCurrency) return amount;
+    final rates = await getExchangeRates(fromCurrency);
     if (rates.containsKey(toCurrency)) {
       return amount * rates[toCurrency]!;
     }

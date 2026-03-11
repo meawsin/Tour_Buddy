@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import '../providers/trip_provider.dart';
 import '../models/trip.dart';
 import 'expense_screen.dart';
@@ -14,8 +13,6 @@ class PastTripsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tripProvider = Provider.of<TripProvider>(context);
-    final primary = Theme.of(context).colorScheme.primary;
-    final tertiary = Theme.of(context).colorScheme.tertiary;
 
     // Show all trips here (history view)
     final trips = tripProvider.trips;
@@ -62,12 +59,12 @@ class PastTripsScreen extends StatelessWidget {
             width: 90,
             height: 90,
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(24),
             ),
             child: Icon(Icons.history_rounded,
                 size: 44,
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.6)),
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.6)),
           ),
           const SizedBox(height: 20),
           Text('No trips recorded yet',
@@ -81,7 +78,7 @@ class PastTripsScreen extends StatelessWidget {
               style: TextStyle(
                 fontSize: 14,
                 color:
-                    Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                    Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
               )),
         ],
       ),
@@ -115,7 +112,7 @@ class PastTripsScreen extends StatelessWidget {
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
           ),
         ),
         child: Column(
@@ -131,7 +128,7 @@ class PastTripsScreen extends StatelessWidget {
                     height: 46,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [primary.withOpacity(0.7), primary],
+                        colors: [primary.withValues(alpha: 0.7), primary],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
@@ -162,7 +159,7 @@ class PastTripsScreen extends StatelessWidget {
                                 color: Theme.of(context)
                                     .colorScheme
                                     .onSurface
-                                    .withOpacity(0.45)),
+                                    .withValues(alpha: 0.45)),
                             const SizedBox(width: 3),
                             Text(
                               trip.destination,
@@ -171,7 +168,7 @@ class PastTripsScreen extends StatelessWidget {
                                 color: Theme.of(context)
                                     .colorScheme
                                     .onSurface
-                                    .withOpacity(0.5),
+                                    .withValues(alpha: 0.5),
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -180,7 +177,7 @@ class PastTripsScreen extends StatelessWidget {
                                 color: Theme.of(context)
                                     .colorScheme
                                     .onSurface
-                                    .withOpacity(0.45)),
+                                    .withValues(alpha: 0.45)),
                             const SizedBox(width: 3),
                             Text(
                               '$daysTotal days',
@@ -189,7 +186,7 @@ class PastTripsScreen extends StatelessWidget {
                                 color: Theme.of(context)
                                     .colorScheme
                                     .onSurface
-                                    .withOpacity(0.5),
+                                    .withValues(alpha: 0.5),
                               ),
                             ),
                           ],
@@ -200,10 +197,10 @@ class PastTripsScreen extends StatelessWidget {
                   // Delete button
                   IconButton(
                     icon: Icon(Icons.delete_outline_rounded,
-                        size: 20, color: tertiary.withOpacity(0.7)),
+                        size: 20, color: tertiary.withValues(alpha: 0.7)),
                     onPressed: () => _confirmDelete(context, tripProvider, trip),
                     style: IconButton.styleFrom(
-                      backgroundColor: tertiary.withOpacity(0.08),
+                      backgroundColor: tertiary.withValues(alpha: 0.08),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10)),
                     ),
@@ -230,7 +227,7 @@ class PastTripsScreen extends StatelessWidget {
                       color: Theme.of(context)
                           .colorScheme
                           .onSurface
-                          .withOpacity(0.4)),
+                          .withValues(alpha: 0.4)),
                   const SizedBox(width: 8),
                   _statChip(context,
                       label: 'Entries',
@@ -252,7 +249,7 @@ class PastTripsScreen extends StatelessWidget {
                     backgroundColor: Theme.of(context)
                         .colorScheme
                         .outline
-                        .withOpacity(0.15),
+                        .withValues(alpha: 0.15),
                     valueColor: AlwaysStoppedAnimation(
                         isOver ? tertiary : primary),
                   ),
@@ -272,7 +269,7 @@ class PastTripsScreen extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
+          color: color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Column(
@@ -284,7 +281,7 @@ class PastTripsScreen extends StatelessWidget {
                     color: Theme.of(context)
                         .colorScheme
                         .onSurface
-                        .withOpacity(0.45))),
+                        .withValues(alpha: 0.45))),
             const SizedBox(height: 2),
             Text(value,
                 style: TextStyle(

@@ -8,7 +8,6 @@ import '../models/trip.dart';
 import 'expense_screen.dart';
 import 'past_trips_screen.dart';
 import 'settings_screen.dart';
-import '../theme_provider.dart';
 
 class StartScreen extends StatefulWidget {
   const StartScreen({super.key});
@@ -53,7 +52,6 @@ class _StartScreenState extends State<StartScreen>
   Color get _primaryColor => Theme.of(context).colorScheme.primary;
   Color get _secondaryColor => Theme.of(context).colorScheme.secondary;
   Color get _tertiaryColor => Theme.of(context).colorScheme.tertiary;
-  bool get _isDark => Theme.of(context).brightness == Brightness.dark;
 
   void _showCreateTripDialog(BuildContext context, TripProvider tripProvider) {
     _tripNameController.clear();
@@ -93,7 +91,6 @@ class _StartScreenState extends State<StartScreen>
   @override
   Widget build(BuildContext context) {
     final tripProvider = Provider.of<TripProvider>(context);
-    final themeProvider = Provider.of<ThemeProvider>(context);
 
     return Scaffold(
       body: FadeTransition(
@@ -215,7 +212,7 @@ class _StartScreenState extends State<StartScreen>
                   else
                     ...tripProvider.trips
                         .map((trip) => _buildTripCard(context, trip, tripProvider))
-                        .toList(),
+                        ,
                 ]),
               ),
             ),
@@ -311,10 +308,10 @@ class _StartScreenState extends State<StartScreen>
               onPressed: () async {
                 await tripProvider.signInWithGoogle();
                 if (!mounted) return;
-                if (tripProvider.currentUser != null &&
-                    !tripProvider.currentUser!.isAnonymous) {
+                final user = tripProvider.currentUser;
+                if (user != null && !user.isAnonymous) {
                   _showSnack(context,
-                      '✓ Signed in as ${tripProvider.currentUser!.displayName ?? "Google User"}');
+                      '✓ Signed in as ${user.displayName ?? "Google User"}');
                 } else {
                   _showSnack(context, 'Sign-in cancelled');
                 }
@@ -343,7 +340,7 @@ class _StartScreenState extends State<StartScreen>
   Widget _buildStatsRow(BuildContext context, TripProvider tripProvider) {
     final totalTrips = tripProvider.trips.length;
     final totalBudget = tripProvider.trips
-        .fold<double>(0, (sum, t) => sum + (t.budget ?? 0));
+        .fold<double>(0, (sum, t) => sum + t.budget);
     final currency = tripProvider.trips.first.currency;
 
     return Container(
@@ -448,12 +445,11 @@ class _StartScreenState extends State<StartScreen>
 
   Widget _buildTripCard(
       BuildContext context, Trip trip, TripProvider tripProvider) {
-    final daysLeft = trip.endDate.difference(DateTime.now()).inDays;
     final isActive = DateTime.now().isBefore(trip.endDate) &&
         DateTime.now().isAfter(trip.startDate.subtract(const Duration(days: 1)));
     final totalSpent = (trip.expenses as List)
         .fold<double>(0, (sum, e) => sum + (e['amount'] as num).toDouble());
-    final budget = trip.budget ?? 0;
+    final budget = trip.budget;
     final progress = budget > 0 ? (totalSpent / budget).clamp(0.0, 1.0) : 0.0;
 
     return GestureDetector(
@@ -709,7 +705,6 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
     _currency = widget.initialCurrency;
   }
 
-  Color get _primary => Theme.of(context).colorScheme.primary;
 
   @override
   Widget build(BuildContext context) {

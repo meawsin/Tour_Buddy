@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -37,7 +38,7 @@ class TripProvider with ChangeNotifier {
         await _auth.signInAnonymously();
       }
     } catch (e) {
-      print("Error signing in anonymously: $e");
+      debugPrint("Error signing in anonymously: $e");
     }
   }
 
@@ -60,11 +61,11 @@ class TripProvider with ChangeNotifier {
         // Link anonymous account to Google — preserves all existing trip data
         try {
           await currentUser.linkWithCredential(credential);
-          print("Linked anonymous account to Google: ${_auth.currentUser?.displayName}");
+          debugPrint("Linked anonymous account to Google: ${_auth.currentUser?.displayName}");
         } on FirebaseAuthException catch (e) {
           if (e.code == 'credential-already-in-use') {
             // Google account already exists — migrate trips then sign in
-            print("Google account exists, migrating trips...");
+            debugPrint("Google account exists, migrating trips...");
             await _migrateTripsToGoogle(credential);
           } else {
             rethrow;
@@ -73,10 +74,10 @@ class TripProvider with ChangeNotifier {
       } else {
         // Already signed in with Google or no user — just sign in normally
         await _auth.signInWithCredential(credential);
-        print("Signed in with Google: ${_auth.currentUser?.displayName}");
+        debugPrint("Signed in with Google: ${_auth.currentUser?.displayName}");
       }
     } catch (e) {
-      print("Error signing in with Google: $e");
+      debugPrint("Error signing in with Google: $e");
     }
   }
 
@@ -95,14 +96,14 @@ class TripProvider with ChangeNotifier {
             .get();
         tripsToMigrate = snapshot.docs.map((d) => d.data()).toList();
       } catch (e) {
-        print("Could not fetch anonymous trips: $e");
+        debugPrint("Could not fetch anonymous trips: $e");
       }
     }
 
     // Sign in with Google credential
     await _auth.signInWithCredential(credential);
     final googleUid = _auth.currentUser?.uid;
-    print("Migrating ${tripsToMigrate.length} trips to Google account ($googleUid)");
+    debugPrint("Migrating ${tripsToMigrate.length} trips to Google account ($googleUid)");
 
     // Write trips to new Google account
     for (final trip in tripsToMigrate) {
@@ -113,7 +114,7 @@ class TripProvider with ChangeNotifier {
             .collection('userTrips')
             .add(trip);
       } catch (e) {
-        print("Error migrating trip: $e");
+        debugPrint("Error migrating trip: $e");
       }
     }
 
@@ -129,7 +130,7 @@ class TripProvider with ChangeNotifier {
           await doc.reference.delete();
         }
       } catch (e) {
-        print("Could not clean up anonymous trips: $e");
+        debugPrint("Could not clean up anonymous trips: $e");
       }
     }
   }
@@ -138,9 +139,9 @@ class TripProvider with ChangeNotifier {
     try {
       await _auth.signOut();
       await _googleSignIn.signOut();
-      print("User signed out.");
+      debugPrint("User signed out.");
     } catch (e) {
-      print("Error signing out: $e");
+      debugPrint("Error signing out: $e");
     }
   }
 
@@ -154,12 +155,12 @@ class TripProvider with ChangeNotifier {
 
       if (initialAuthToken != null && initialAuthToken.isNotEmpty) {
         await _auth.signInWithCustomToken(initialAuthToken);
-        print("Signed in with custom token.");
+        debugPrint("Signed in with custom token.");
       } else {
         await _signInAnonymously();
       }
     } catch (e) {
-      print("Error during Canvas token sign-in: $e");
+      debugPrint("Error during Canvas token sign-in: $e");
       await _signInAnonymously();
     }
   }
@@ -183,10 +184,10 @@ class TripProvider with ChangeNotifier {
         _trips = snapshot.docs.map((doc) => Trip.fromFirestore(doc)).toList();
         notifyListeners();
       }, onError: (error) {
-        print("Error listening to trips: $error");
+        debugPrint("Error listening to trips: $error");
       });
     } catch (e) {
-      print("Error loading trips: $e");
+      debugPrint("Error loading trips: $e");
     }
   }
 
@@ -201,9 +202,9 @@ class TripProvider with ChangeNotifier {
           .add(trip.toMap());
       trip.id = docRef.id;
       notifyListeners();
-      print("Trip added: ${trip.name}");
+      debugPrint("Trip added: ${trip.name}");
     } catch (e) {
-      print("Error adding trip: $e");
+      debugPrint("Error adding trip: $e");
     }
   }
 
@@ -219,7 +220,7 @@ class TripProvider with ChangeNotifier {
           .update(trip.toMap());
       notifyListeners();
     } catch (e) {
-      print("Error updating trip: $e");
+      debugPrint("Error updating trip: $e");
     }
   }
 
@@ -248,7 +249,7 @@ class TripProvider with ChangeNotifier {
             .update(updates);
       }
     } catch (e) {
-      print("Error updating trip details: $e");
+      debugPrint("Error updating trip details: $e");
     }
   }
 
@@ -267,7 +268,7 @@ class TripProvider with ChangeNotifier {
           .doc(trip.id)
           .update({'expenses': updatedExpenses});
     } catch (e) {
-      print("Error adding expense: $e");
+      debugPrint("Error adding expense: $e");
     }
   }
 
@@ -282,7 +283,7 @@ class TripProvider with ChangeNotifier {
           .doc(trip.id)
           .update({'expenses': []});
     } catch (e) {
-      print("Error resetting expenses: $e");
+      debugPrint("Error resetting expenses: $e");
     }
   }
 
@@ -302,7 +303,7 @@ class TripProvider with ChangeNotifier {
           .delete();
       notifyListeners();
     } catch (e) {
-      print("Error deleting trip: $e");
+      debugPrint("Error deleting trip: $e");
     }
   }
 
@@ -311,7 +312,7 @@ class TripProvider with ChangeNotifier {
   double calculateTotalSpent(List<Expense> expenses, String tripId) {
     return expenses
         .where((e) => e.tripId == tripId)
-        .fold(0.0, (sum, item) => sum + item.amount);
+        .fold(0.0, (acc, item) => acc + item.amount);
   }
 
   double calculateRemainingBudget(double totalBudget, double totalSpent) {
