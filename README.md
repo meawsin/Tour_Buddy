@@ -1,21 +1,86 @@
-# Tour Buddy
+# 🌍 Tour Buddy
 
-Tour Buddy is a Flutter application that helps users manage their expenses efficiently. Users can add, view, and reset their expenses, with a user-friendly interface.
+A full-featured travel expense tracker built with Flutter and Firebase.
 
-## Features
+## ✨ Features
 
-- Add expenses with a title and amount.
-- View total expenses in the app.
-- Reset all expenses.
-- Toggle between light and dark themes.
-- Save expenses persistently using Shared Preferences.
+- **Trip Management** — Create and manage multiple trips with budgets, destinations, and dates
+- **Expense Tracking** — Log expenses by category (Food, Transport, Accommodation, Shopping, Activities, Other)
+- **Analytics Dashboard** — Interactive charts powered by fl_chart
+  - Daily spending bar chart
+  - Category breakdown donut chart
+  - Budget vs spent progress
+  - Daily average, top day, top category stats
+- **Google Sign-in** — Anonymous → Google account linking with trip data migration
+- **Dark / Light Theme** — Material 3 design with persistent theme preference
+- **Currency Support** — BDT, USD, EUR, GBP, INR, JPY, AUD
+- **Font Size Control** — Adjustable text scale in settings
+- **Past Trips** — Archive and review completed trips
 
-## Screenshots
+## 🛠 Tech Stack
 
-![App Screenshot](path_to_your_screenshot.png) <!-- Optional -->
+| Layer | Technology |
+|-------|-----------|
+| Framework | Flutter 3.x (Dart) |
+| State Management | Provider |
+| Backend | Firebase (Auth + Firestore) |
+| Charts | fl_chart |
+| Fonts | Google Fonts (Syne + DM Sans) |
+| Auth | Firebase Auth (Anonymous + Google Sign-in) |
 
-## Installation
+## 📱 Screenshots
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/tour_buddy.git
+*Coming soon*
+
+## 🚀 Getting Started
+
+1. Clone the repo
+```bash
+git clone https://github.com/meawsin/Tour_Buddy.git
+cd Tour_Buddy
+```
+
+2. Install dependencies
+```bash
+flutter pub get
+```
+
+3. Add your `google-services.json` to `android/app/`
+
+4. Run the app
+```bash
+flutter run
+```
+
+## 📁 Project Structure
+
+```
+lib/
+├── main.dart
+├── theme_provider.dart
+├── firebase_options.dart
+├── models/
+│   ├── trip.dart
+│   └── expense_model.dart
+├── providers/
+│   └── trip_provider.dart
+├── screens/
+│   ├── start_screen.dart
+│   ├── expense_screen.dart
+│   ├── analytics_screen.dart
+│   ├── past_trips_screen.dart
+│   └── settings_screen.dart
+└── services/
+    ├── currency_service.dart
+    └── security_service.dart
+```
+
+## 🔐 Firebase Setup
+
+- Anonymous Auth + Google Sign-in enabled
+- Firestore rules scoped per user UID
+- SHA-1 fingerprint registered for Google Sign-in
+
+## 👨‍💻 Author
+
+**Mohsin** — [@meawsin](https://github.com/meawsin)
