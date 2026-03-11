@@ -52,13 +52,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   }
 
   double get _totalSpent =>
-      _live.expenses.fold(0, (s, e) => s + (e['amount'] as num));
+      _live.expenses.fold(0, (s, e) => s + (e['amount'] as num? ?? 0));
 
   Map<String, double> get _byCategory {
     final map = <String, double>{};
     for (final e in _live.expenses) {
       final cat = e['category'] as String? ?? 'Other';
-      map[cat] = (map[cat] ?? 0) + (e['amount'] as num);
+      map[cat] = (map[cat] ?? 0) + (e['amount'] as num? ?? 0);
     }
     return map;
   }
@@ -72,7 +72,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
       try {
         final d = DateTime.parse(raw);
         final key = DateFormat('MMM d').format(d);
-        map[key] = (map[key] ?? 0) + (e['amount'] as num);
+        map[key] = (map[key] ?? 0) + (e['amount'] as num? ?? 0);
       } catch (_) {}
     }
     return map;
@@ -839,5 +839,5 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
 }
 
 extension on MapEntry<String, double> {
-  get toY => null;
+  double get toY => value;
 }

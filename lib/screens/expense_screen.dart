@@ -7,6 +7,8 @@ import 'package:uuid/uuid.dart';
 import '../providers/trip_provider.dart';
 import '../models/trip.dart';
 import 'analytics_screen.dart';
+import '../services/budget_alert_service.dart';
+import '../widgets/budget_alert_banner.dart';
 
 // ── Category definitions ────────────────────────────────────────────────────
 class ExpenseCategory {
@@ -58,6 +60,10 @@ class _ExpenseScreenState extends State<ExpenseScreen>
     _fabAnim = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 300));
     _fabAnim.forward();
+    // Load previously dismissed alerts for this trip
+    if (widget.trip.id != null) {
+      BudgetAlertService.instance.loadForTrip(widget.trip.id!);
+    }
   }
 
   @override
@@ -106,12 +112,8 @@ class _ExpenseScreenState extends State<ExpenseScreen>
   double _budgetProgressOf(Trip t) =>
       t.budget > 0 ? (_totalSpentOf(t) / t.budget).clamp(0.0, 1.0) : 0.0;
 
-  // Live getter — always uses fresh trip data
-  Trip get _liveTripData {
-    final p = Provider.of<TripProvider>(context, listen: false);
-    return p.trips.firstWhere((t) => t.id == widget.trip.id, orElse: () => widget.trip);
-  }
-  double get _totalSpent => _totalSpentOf(_liveTripData);
+  // keep legacy getter for share/insights that use widget.trip directly
+  double get _totalSpent => _totalSpentOf(widget.trip);
 
   Map<String, double> _categoryTotalsOf(Trip t) {
     final Map<String, double> map = {};
@@ -297,7 +299,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
     );
   }
 
-  void _submitExpense(BuildContext ctx) {
+  Future<void> _submitExpense(BuildContext ctx) async {
     final title = _titleCtrl.text.trim();
     final amount = double.tryParse(_amountCtrl.text);
     if (title.isEmpty || amount == null || amount <= 0) {
@@ -317,15 +319,32 @@ class _ExpenseScreenState extends State<ExpenseScreen>
       'notes': _notesCtrl.text.trim(),
       'date': DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now()),
     };
-    Provider.of<TripProvider>(ctx, listen: false)
-        .addExpenseToCurrentTrip(widget.trip, expense);
+    final provider = Provider.of<TripProvider>(ctx, listen: false);
+    await provider.addExpenseToCurrentTrip(widget.trip, expense);
     Navigator.pop(ctx);
-    ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
-      content: Text('$title added'),
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      margin: const EdgeInsets.all(16),
-    ));
+    if (ctx.mounted) {
+      ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+        content: Text('$title added'),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+      ));
+    }
+    // Check budget alert after adding expense
+    if (mounted && widget.trip.id != null) {
+      final liveTrip = provider.trips.firstWhere(
+        (t) => t.id == widget.trip.id,
+        orElse: () => widget.trip,
+      );
+      final spent = liveTrip.expenses
+          .fold<double>(0, (s, e) => s + (e['amount'] as num));
+      BudgetAlertService.instance.checkBudget(
+        tripId: widget.trip.id!,
+        totalSpent: spent,
+        budget: liveTrip.budget,
+      );
+      setState(() {});
+    }
   }
 
   // ── Main Build ─────────────────────────────────────────────────────────────
@@ -504,6 +523,25 @@ class _ExpenseScreenState extends State<ExpenseScreen>
                   ],
                 ),
                 const SizedBox(height: 10),
+
+                // ── Budget Alert Banner ────────────────────────────
+                if (widget.trip.id != null && budget > 0)
+                  Builder(builder: (_) {
+                    final alert = BudgetAlertService.instance.checkBudget(
+                      tripId: widget.trip.id!,
+                      totalSpent: totalSpent,
+                      budget: budget,
+                    );
+                    if (alert == null) return const SizedBox.shrink();
+                    return BudgetAlertBanner(
+                      alert: alert,
+                      onDismiss: () {
+                        BudgetAlertService.instance
+                            .dismiss(widget.trip.id!, alert.level);
+                        setState(() {});
+                      },
+                    );
+                  }),
 
                 // ── Category filter chips ──────────────────────────
                 if (expenses.isNotEmpty)
@@ -1095,8 +1133,12 @@ class _ExpenseScreenState extends State<ExpenseScreen>
               onPressed: () => Navigator.pop(context),
               child: const Text('Cancel')),
           ElevatedButton(
-            onPressed: () {
-              tripProvider.resetCurrentTripExpenses(widget.trip);
+            onPressed: () async {
+              await tripProvider.resetCurrentTripExpenses(widget.trip);
+              if (widget.trip.id != null) {
+                await BudgetAlertService.instance.resetForTrip(widget.trip.id!);
+              }
+              setState(() {});
               Navigator.pop(context);
             },
             style:
