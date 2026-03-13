@@ -1,15 +1,23 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Trip {
-  String? id; // Firebase document ID
-  String
-      name; // Changed from title to name to match usage in expense_screen.dart
+  /// Firebase document ID. Null until the trip is saved to Firestore.
+  String? id;
+  /// Display name of the trip (e.g. 'Eid Trip 2026').
+  String name;
+  /// Destination string shown on the trip card.
   String destination;
+  /// Trip start date. Stored as Firestore Timestamp.
   DateTime startDate;
+  /// Trip end date. Stored as Firestore Timestamp.
   DateTime endDate;
+  /// Budget amount in [currency]. Zero means no budget set.
   double budget;
+  /// ISO currency code (e.g. 'BDT', 'USD').
   String currency;
-  List<Map<String, dynamic>> expenses; // Store expenses as a list of maps
+  /// List of expenses stored as maps.
+  /// Each map contains: id, title, amount, category, date (ISO string), notes?.
+  List<Map<String, dynamic>> expenses;
 
   Trip({
     this.id,

@@ -24,12 +24,17 @@ dependencies:
   google_fonts: ^7.0.0
   local_auth: ^3.0.0
   fl_chart: ^0.70.2
+  pdf: ^3.11.1
+  path_provider: ^2.1.4
 
 dev_dependencies:
   flutter_launcher_icons: ^0.14.4
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  integration_test:
+    sdk: flutter
+  http_mock_adapter: ^0.6.1
 
 flutter:
   uses-material-design: true

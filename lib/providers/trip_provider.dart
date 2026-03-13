@@ -258,17 +258,31 @@ class TripProvider with ChangeNotifier {
     if (_currentUser == null || trip.id == null) return;
 
     try {
-      List<Map<String, dynamic>> updatedExpenses = List.from(trip.expenses);
-      updatedExpenses.add(expense);
-
+      // arrayUnion appends atomically server-side — prevents stale overwrites
       await _firestore
           .collection('trips')
           .doc(_currentUser!.uid)
           .collection('userTrips')
           .doc(trip.id)
-          .update({'expenses': updatedExpenses});
+          .update({'expenses': FieldValue.arrayUnion([expense])});
     } catch (e) {
       debugPrint("Error adding expense: $e");
+    }
+  }
+
+  Future<void> deleteExpenseFromTrip(
+      Trip trip, Map<String, dynamic> expense) async {
+    if (_currentUser == null || trip.id == null) return;
+
+    try {
+      await _firestore
+          .collection('trips')
+          .doc(_currentUser!.uid)
+          .collection('userTrips')
+          .doc(trip.id)
+          .update({'expenses': FieldValue.arrayRemove([expense])});
+    } catch (e) {
+      debugPrint("Error deleting expense: $e");
     }
   }
 

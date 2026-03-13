@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../theme_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import '../services/pdf_export_service.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:uuid/uuid.dart';
 import '../providers/trip_provider.dart';
 import '../models/trip.dart';
 import 'analytics_screen.dart';
-import '../services/budget_alert_service.dart';
-import '../widgets/budget_alert_banner.dart';
 
 // ── Category definitions ────────────────────────────────────────────────────
 class ExpenseCategory {
@@ -60,10 +60,6 @@ class _ExpenseScreenState extends State<ExpenseScreen>
     _fabAnim = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 300));
     _fabAnim.forward();
-    // Load previously dismissed alerts for this trip
-    if (widget.trip.id != null) {
-      BudgetAlertService.instance.loadForTrip(widget.trip.id!);
-    }
   }
 
   @override
@@ -299,7 +295,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
     );
   }
 
-  Future<void> _submitExpense(BuildContext ctx) async {
+  void _submitExpense(BuildContext ctx) {
     final title = _titleCtrl.text.trim();
     final amount = double.tryParse(_amountCtrl.text);
     if (title.isEmpty || amount == null || amount <= 0) {
@@ -319,32 +315,15 @@ class _ExpenseScreenState extends State<ExpenseScreen>
       'notes': _notesCtrl.text.trim(),
       'date': DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now()),
     };
-    final provider = Provider.of<TripProvider>(ctx, listen: false);
-    await provider.addExpenseToCurrentTrip(widget.trip, expense);
+    Provider.of<TripProvider>(ctx, listen: false)
+        .addExpenseToCurrentTrip(widget.trip, expense);
     Navigator.pop(ctx);
-    if (ctx.mounted) {
-      ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
-        content: Text('$title added'),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-      ));
-    }
-    // Check budget alert after adding expense
-    if (mounted && widget.trip.id != null) {
-      final liveTrip = provider.trips.firstWhere(
-        (t) => t.id == widget.trip.id,
-        orElse: () => widget.trip,
-      );
-      final spent = liveTrip.expenses
-          .fold<double>(0, (s, e) => s + (e['amount'] as num));
-      BudgetAlertService.instance.checkBudget(
-        tripId: widget.trip.id!,
-        totalSpent: spent,
-        budget: liveTrip.budget,
-      );
-      setState(() {});
-    }
+    ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+      content: Text('✓ $title added'),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.all(16),
+    ));
   }
 
   // ── Main Build ─────────────────────────────────────────────────────────────
@@ -451,9 +430,49 @@ class _ExpenseScreenState extends State<ExpenseScreen>
                   ),
                 ),
               ),
-              IconButton(
+              PopupMenuButton<String>(
                 icon: const Icon(Icons.share_rounded),
-                onPressed: () => _shareTrip(context),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
+                onSelected: (value) {
+                  if (value == 'pdf') {
+                    final tripProvider =
+                        Provider.of<TripProvider>(context, listen: false);
+                    final liveTrip = tripProvider.trips.firstWhere(
+                      (t) => t.id == widget.trip.id,
+                      orElse: () => widget.trip,
+                    );
+                    final themeProvider =
+                        Provider.of<ThemeProvider>(context, listen: false);
+                    final user = Provider.of<TripProvider>(context, listen: false).currentUser;
+                    final name = (user != null && !user.isAnonymous &&
+                            (user.displayName?.isNotEmpty ?? false))
+                        ? user.displayName!
+                        : themeProvider.userName;
+                    PdfExportService.exportTrip(context, liveTrip,
+                        submittedBy: name);
+                  } else {
+                    _shareTrip(context);
+                  }
+                },
+                itemBuilder: (_) => [
+                  PopupMenuItem(
+                    value: 'pdf',
+                    child: Row(children: [
+                      const Icon(Icons.picture_as_pdf_rounded, size: 18),
+                      const SizedBox(width: 10),
+                      const Text('Export as PDF'),
+                    ]),
+                  ),
+                  PopupMenuItem(
+                    value: 'text',
+                    child: Row(children: [
+                      const Icon(Icons.text_snippet_rounded, size: 18),
+                      const SizedBox(width: 10),
+                      const Text('Share as text'),
+                    ]),
+                  ),
+                ],
               ),
               PopupMenuButton<SortOption>(
                 icon: const Icon(Icons.sort_rounded),
@@ -523,25 +542,6 @@ class _ExpenseScreenState extends State<ExpenseScreen>
                   ],
                 ),
                 const SizedBox(height: 10),
-
-                // ── Budget Alert Banner ────────────────────────────
-                if (widget.trip.id != null && budget > 0)
-                  Builder(builder: (_) {
-                    final alert = BudgetAlertService.instance.checkBudget(
-                      tripId: widget.trip.id!,
-                      totalSpent: totalSpent,
-                      budget: budget,
-                    );
-                    if (alert == null) return const SizedBox.shrink();
-                    return BudgetAlertBanner(
-                      alert: alert,
-                      onDismiss: () {
-                        BudgetAlertService.instance
-                            .dismiss(widget.trip.id!, alert.level);
-                        setState(() {});
-                      },
-                    );
-                  }),
 
                 // ── Category filter chips ──────────────────────────
                 if (expenses.isNotEmpty)
@@ -702,6 +702,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
   Widget _buildCategoryBreakdown(BuildContext context, Trip liveTrip) {
     final totals = _categoryTotalsOf(liveTrip);
     if (totals.isEmpty) return const SizedBox.shrink();
+    final totalSpent = _totalSpentOf(liveTrip);
     final sorted = totals.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
@@ -716,7 +717,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
         const SizedBox(height: 12),
         ...sorted.map((entry) {
           final cat = categoryFor(entry.key);
-          final pct = _totalSpent > 0 ? entry.value / _totalSpent : 0.0;
+          final pct = totalSpent > 0 ? entry.value / totalSpent : 0.0;
           return Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: Row(
@@ -742,7 +743,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
                               style: const TextStyle(
                                   fontSize: 13, fontWeight: FontWeight.w500)),
                           Text(
-                            '${widget.trip.currency} ${entry.value.toStringAsFixed(0)}  (${(pct * 100).toInt()}%)',
+                            '${liveTrip.currency} ${entry.value.toStringAsFixed(0)}  (${(pct * 100).toInt()}%)',
                             style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -876,13 +877,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
         );
       },
       onDismissed: (_) {
-        final currentTrip = tripProvider.trips.firstWhere((t) => t.id == widget.trip.id, orElse: () => widget.trip);
-        final updated = List<Map<String, dynamic>>.from(currentTrip.expenses)
-          ..removeWhere(
-              (e) => e['id'] == expense['id'] && e['title'] == expense['title']);
-        currentTrip.expenses.clear();
-        currentTrip.expenses.addAll(updated);
-        tripProvider.updateTrip(currentTrip);
+        tripProvider.deleteExpenseFromTrip(widget.trip, expense);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Removed "${expense['title']}"'),
           behavior: SnackBarBehavior.floating,
@@ -1133,12 +1128,8 @@ class _ExpenseScreenState extends State<ExpenseScreen>
               onPressed: () => Navigator.pop(context),
               child: const Text('Cancel')),
           ElevatedButton(
-            onPressed: () async {
-              await tripProvider.resetCurrentTripExpenses(widget.trip);
-              if (widget.trip.id != null) {
-                await BudgetAlertService.instance.resetForTrip(widget.trip.id!);
-              }
-              setState(() {});
+            onPressed: () {
+              tripProvider.resetCurrentTripExpenses(widget.trip);
               Navigator.pop(context);
             },
             style:
@@ -1150,24 +1141,40 @@ class _ExpenseScreenState extends State<ExpenseScreen>
     );
   }
 
-  void _shareTrip(BuildContext context) {
+  Future<void> _shareTrip(BuildContext context) async {
+    final tripProvider = Provider.of<TripProvider>(context, listen: false);
+    final liveTrip = tripProvider.trips.firstWhere(
+      (t) => t.id == widget.trip.id,
+      orElse: () => widget.trip,
+    );
+    final totalSpent = _totalSpentOf(liveTrip);
     final buffer = StringBuffer();
-    buffer.writeln('🗺️ Trip: ${widget.trip.name}');
-    buffer.writeln('📍 ${widget.trip.destination}');
+    buffer.writeln('Trip: ${liveTrip.name}');
+    buffer.writeln('Destination: ${liveTrip.destination}');
     buffer.writeln(
-        '📅 ${DateFormat('MMM d').format(widget.trip.startDate)} – ${DateFormat('MMM d, yyyy').format(widget.trip.endDate)}');
+        'Dates: ${DateFormat('MMM d').format(liveTrip.startDate)} - ${DateFormat('MMM d, yyyy').format(liveTrip.endDate)}');
     buffer.writeln(
-        '💰 Total Spent: ${widget.trip.currency} ${_totalSpent.toStringAsFixed(2)}');
-    if (widget.trip.budget > 0) {
+        'Total Spent: ${liveTrip.currency} ${totalSpent.toStringAsFixed(2)}');
+    if (liveTrip.budget > 0) {
+      final pct = (totalSpent / liveTrip.budget * 100).toInt();
       buffer.writeln(
-          '🎯 Budget: ${widget.trip.currency} ${widget.trip.budget.toStringAsFixed(2)}');
+          'Budget: ${liveTrip.currency} ${liveTrip.budget.toStringAsFixed(2)} ($pct% used)');
+      final remaining = liveTrip.budget - totalSpent;
+      if (remaining >= 0) {
+        buffer.writeln('Remaining: ${liveTrip.currency} ${remaining.toStringAsFixed(2)}');
+      } else {
+        buffer.writeln('Over budget by: ${liveTrip.currency} ${(-remaining).toStringAsFixed(2)}');
+      }
     }
-    buffer.writeln('\nExpenses:');
-    for (final e in widget.trip.expenses) {
+    buffer.writeln('\nExpenses (${liveTrip.expenses.length} total):');
+    for (final e in liveTrip.expenses) {
+      final cat = e['category'] as String? ?? 'Other';
       buffer.writeln(
-          '• ${e['title']}: ${widget.trip.currency} ${(e['amount'] as num).toStringAsFixed(2)}');
+          '  ${e['title']} [$cat]: ${liveTrip.currency} ${(e['amount'] as num? ?? 0).toStringAsFixed(2)}');
     }
-    Share.share(buffer.toString(), subject: 'Tour Buddy – ${widget.trip.name}');
+    await SharePlus.instance.share(
+      ShareParams(text: buffer.toString(), subject: 'Tour Buddy - ${liveTrip.name}'),
+    );
   }
 
   PopupMenuItem<SortOption> _menuItem(

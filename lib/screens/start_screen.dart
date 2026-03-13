@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
@@ -123,13 +124,39 @@ class _StartScreenState extends State<StartScreen>
                           color: Colors.white, size: 18),
                     ),
                     const SizedBox(width: 10),
-                    Text(
-                      'Tour Buddy',
-                      style: GoogleFonts.syne(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
+                    Consumer<ThemeProvider>(
+                      builder: (context, themeProvider, _) {
+                        final user = tripProvider.currentUser;
+                        // Prefer Google display name, then stored name, then app name
+                        final name = (user != null && !user.isAnonymous && (user.displayName?.isNotEmpty ?? false))
+                            ? user.displayName!
+                            : themeProvider.userName.isNotEmpty
+                                ? themeProvider.userName
+                                : null;
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Tour Buddy',
+                              style: GoogleFonts.syne(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                            if (name != null)
+                              Text(
+                                'Hello, $name',
+                                style: GoogleFonts.dmSans(
+                                  fontSize: 11,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                          ],
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -142,7 +169,7 @@ class _StartScreenState extends State<StartScreen>
                     onPressed: () async {
                       await tripProvider.signOut();
                       if (context.mounted) {
-                        _showSnack(context, 'Signed out successfully');
+                        _showSnack(context, '👋 Signed out successfully');
                       }
                     },
                   ),
@@ -170,6 +197,16 @@ class _StartScreenState extends State<StartScreen>
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
+                  // ── Name prompt (anonymous users without a name) ──
+                  Consumer<ThemeProvider>(
+                    builder: (context, themeProvider, _) {
+                      final isAnon = tripProvider.currentUser == null ||
+                          tripProvider.currentUser!.isAnonymous;
+                      if (!isAnon) return const SizedBox.shrink();
+                      if (themeProvider.userName.isNotEmpty) return const SizedBox.shrink();
+                      return _buildNamePromptCard(context, themeProvider);
+                    },
+                  ),
                   // ── Sign-In Card (only for anonymous) ─────────────
                   if (tripProvider.currentUser == null ||
                       tripProvider.currentUser!.isAnonymous)
@@ -242,21 +279,95 @@ class _StartScreenState extends State<StartScreen>
     );
   }
 
+
+  Widget _buildNamePromptCard(BuildContext context, ThemeProvider themeProvider) {
+    final ctrl = TextEditingController();
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'What should we call you?',
+            style: GoogleFonts.syne(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Your name appears on the home screen and PDF reports.',
+            style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: ctrl,
+                  decoration: InputDecoration(
+                    hintText: 'Enter your name',
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    isDense: true,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  textCapitalization: TextCapitalization.words,
+                  onSubmitted: (v) {
+                    if (v.trim().isNotEmpty) themeProvider.setUserName(v);
+                  },
+                ),
+              ),
+              const SizedBox(width: 10),
+              ElevatedButton(
+                onPressed: () {
+                  if (ctrl.text.trim().isNotEmpty) {
+                    themeProvider.setUserName(ctrl.text);
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 10),
+                  minimumSize: Size.zero,
+                ),
+                child: const Text('Save'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSignInCard(BuildContext context, TripProvider tripProvider) {
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            _primaryColor.withValues(alpha: 0.15),
-            _secondaryColor.withValues(alpha: 0.08),
+            _primaryColor.withOpacity(0.15),
+            _secondaryColor.withOpacity(0.08),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: _primaryColor.withValues(alpha: 0.25),
+          color: _primaryColor.withOpacity(0.25),
         ),
       ),
       padding: const EdgeInsets.all(20),
@@ -267,7 +378,7 @@ class _StartScreenState extends State<StartScreen>
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: _primaryColor.withValues(alpha: 0.15),
+                  color: _primaryColor.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(Icons.cloud_sync_rounded,
@@ -293,7 +404,7 @@ class _StartScreenState extends State<StartScreen>
                         color: Theme.of(context)
                             .colorScheme
                             .onSurface
-                            .withValues(alpha: 0.6),
+                            .withOpacity(0.6),
                       ),
                     ),
                   ],
@@ -311,7 +422,7 @@ class _StartScreenState extends State<StartScreen>
                 final user = tripProvider.currentUser;
                 if (user != null && !user.isAnonymous) {
                   _showSnack(context,
-                      'Signed in as ${user.displayName ?? "Google User"}');
+                      '✓ Signed in as ${user.displayName ?? "Google User"}');
                 } else {
                   _showSnack(context, 'Sign-in cancelled');
                 }
@@ -325,7 +436,7 @@ class _StartScreenState extends State<StartScreen>
               ),
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                side: BorderSide(color: _primaryColor.withValues(alpha: 0.4)),
+                side: BorderSide(color: _primaryColor.withOpacity(0.4)),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
                 foregroundColor: Theme.of(context).colorScheme.onSurface,
@@ -347,12 +458,12 @@ class _StartScreenState extends State<StartScreen>
       margin: const EdgeInsets.only(bottom: 24),
       child: Row(
         children: [
-          _buildStatChip(context, Icons.flight_rounded, '$totalTrips', 'Trips'),
+          _buildStatChip(context, '✈️', '$totalTrips', 'Trips'),
           const SizedBox(width: 10),
-          _buildStatChip(context, Icons.account_balance_wallet_rounded,
+          _buildStatChip(context, '💰',
               '$currency ${totalBudget.toStringAsFixed(0)}', 'Total Budget'),
           const SizedBox(width: 10),
-          _buildStatChip(context, Icons.location_on_rounded,
+          _buildStatChip(context, '📍',
               '${tripProvider.trips.map((t) => t.destination).toSet().length}',
               'Destinations'),
         ],
@@ -361,7 +472,7 @@ class _StartScreenState extends State<StartScreen>
   }
 
   Widget _buildStatChip(
-      BuildContext context, IconData icon, String value, String label) {
+      BuildContext context, String emoji, String value, String label) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
@@ -369,11 +480,11 @@ class _StartScreenState extends State<StartScreen>
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-              color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5)),
+              color: Theme.of(context).colorScheme.outline.withOpacity(0.5)),
         ),
         child: Column(
           children: [
-            Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+            Text(emoji, style: const TextStyle(fontSize: 18)),
             const SizedBox(height: 4),
             Text(
               value,
@@ -389,7 +500,7 @@ class _StartScreenState extends State<StartScreen>
               label,
               style: TextStyle(
                 fontSize: 10,
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
               ),
             ),
           ],
@@ -409,8 +520,8 @@ class _StartScreenState extends State<StartScreen>
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  _primaryColor.withValues(alpha: 0.2),
-                  _tertiaryColor.withValues(alpha: 0.1),
+                  _primaryColor.withOpacity(0.2),
+                  _tertiaryColor.withOpacity(0.1),
                 ],
               ),
               borderRadius: BorderRadius.circular(30),
@@ -420,7 +531,7 @@ class _StartScreenState extends State<StartScreen>
           ),
           const SizedBox(height: 24),
           Text(
-            'No trips yet',
+            'No trips yet!',
             style: GoogleFonts.syne(
               fontSize: 22,
               fontWeight: FontWeight.w700,
@@ -429,12 +540,12 @@ class _StartScreenState extends State<StartScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            'Tap the button below to plan\nyour first adventure',
+            'Tap the button below to plan\nyour first adventure 🌍',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 15,
               color:
-                  Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
+                  Theme.of(context).colorScheme.onSurface.withOpacity(0.55),
               height: 1.5,
             ),
           ),
@@ -452,41 +563,7 @@ class _StartScreenState extends State<StartScreen>
     final budget = trip.budget;
     final progress = budget > 0 ? (totalSpent / budget).clamp(0.0, 1.0) : 0.0;
 
-    return Dismissible(
-      key: Key(trip.id ?? trip.name),
-      direction: DismissDirection.endToStart,
-      confirmDismiss: (_) async {
-        return await showDialog<bool>(
-          context: context,
-          builder: (_) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: Text('Delete Trip?', style: GoogleFonts.syne(fontWeight: FontWeight.w700, fontSize: 18)),
-            content: Text('This will permanently delete "${trip.name}" and all its expenses.'),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context, true),
-                style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.tertiary),
-                child: const Text('Delete'),
-              ),
-            ],
-          ),
-        ) ?? false;
-      },
-      onDismissed: (_) {
-        if (trip.id != null) tripProvider.deleteTrip(trip.id!);
-      },
-      background: Container(
-        margin: const EdgeInsets.only(bottom: 14),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.tertiary,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        child: const Icon(Icons.delete_outline_rounded, color: Colors.white, size: 26),
-      ),
-      child: GestureDetector(
+    return GestureDetector(
       onTap: () {
         tripProvider.selectTrip(trip);
         Navigator.push(
@@ -501,13 +578,13 @@ class _StartScreenState extends State<StartScreen>
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isActive
-                ? _primaryColor.withValues(alpha: 0.3)
-                : Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+                ? _primaryColor.withOpacity(0.3)
+                : Theme.of(context).colorScheme.outline.withOpacity(0.3),
           ),
           boxShadow: isActive
               ? [
                   BoxShadow(
-                    color: _primaryColor.withValues(alpha: 0.1),
+                    color: _primaryColor.withOpacity(0.1),
                     blurRadius: 20,
                     offset: const Offset(0, 4),
                   )
@@ -566,12 +643,12 @@ class _StartScreenState extends State<StartScreen>
                                   horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
                                 color: isActive
-                                    ? _primaryColor.withValues(alpha: 0.15)
-                                    : Colors.grey.withValues(alpha: 0.15),
+                                    ? _primaryColor.withOpacity(0.15)
+                                    : Colors.grey.withOpacity(0.15),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
-                                isActive ? 'Active' : 'Ended',
+                                isActive ? '● Active' : 'Ended',
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w600,
@@ -589,7 +666,7 @@ class _StartScreenState extends State<StartScreen>
                                 color: Theme.of(context)
                                     .colorScheme
                                     .onSurface
-                                    .withValues(alpha: 0.5)),
+                                    .withOpacity(0.5)),
                             const SizedBox(width: 3),
                             Text(
                               trip.destination,
@@ -598,7 +675,7 @@ class _StartScreenState extends State<StartScreen>
                                 color: Theme.of(context)
                                     .colorScheme
                                     .onSurface
-                                    .withValues(alpha: 0.6),
+                                    .withOpacity(0.6),
                               ),
                             ),
                             const SizedBox(width: 10),
@@ -607,7 +684,7 @@ class _StartScreenState extends State<StartScreen>
                                 color: Theme.of(context)
                                     .colorScheme
                                     .onSurface
-                                    .withValues(alpha: 0.5)),
+                                    .withOpacity(0.5)),
                             const SizedBox(width: 3),
                             Text(
                               '${DateFormat('MMM d').format(trip.startDate)} – ${DateFormat('MMM d').format(trip.endDate)}',
@@ -616,7 +693,7 @@ class _StartScreenState extends State<StartScreen>
                                 color: Theme.of(context)
                                     .colorScheme
                                     .onSurface
-                                    .withValues(alpha: 0.5),
+                                    .withOpacity(0.5),
                               ),
                             ),
                           ],
@@ -628,7 +705,7 @@ class _StartScreenState extends State<StartScreen>
                       color: Theme.of(context)
                           .colorScheme
                           .onSurface
-                          .withValues(alpha: 0.3)),
+                          .withOpacity(0.3)),
                 ],
               ),
             ),
@@ -660,7 +737,7 @@ class _StartScreenState extends State<StartScreen>
                             color: Theme.of(context)
                                 .colorScheme
                                 .onSurface
-                                .withValues(alpha: 0.5),
+                                .withOpacity(0.5),
                           ),
                         ),
                       ],
@@ -674,7 +751,7 @@ class _StartScreenState extends State<StartScreen>
                         backgroundColor: Theme.of(context)
                             .colorScheme
                             .outline
-                            .withValues(alpha: 0.2),
+                            .withOpacity(0.2),
                         valueColor: AlwaysStoppedAnimation(
                           progress > 0.85 ? _tertiaryColor : _primaryColor,
                         ),
@@ -686,7 +763,6 @@ class _StartScreenState extends State<StartScreen>
           ],
         ),
       ),
-    ),
     );
   }
 
@@ -763,13 +839,13 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 20),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.4),
+                  color: Theme.of(context).colorScheme.outline.withOpacity(0.4),
                   borderRadius: BorderRadius.circular(99),
                 ),
               ),
             ),
             Text(
-              'New Trip',
+              'Plan New Trip ✈️',
               style: GoogleFonts.syne(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,
@@ -782,7 +858,7 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
               style: TextStyle(
                 fontSize: 14,
                 color:
-                    Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
+                    Theme.of(context).colorScheme.onSurface.withOpacity(0.55),
               ),
             ),
             const SizedBox(height: 24),
@@ -890,7 +966,7 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
                       color: Theme.of(context)
                           .colorScheme
                           .onSurface
-                          .withValues(alpha: 0.4)),
+                          .withOpacity(0.4)),
                 ),
                 Expanded(
                   child: _buildDateButton(
@@ -973,7 +1049,7 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
           fontSize: 12,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.5,
-          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
         ),
       ),
     );
@@ -991,14 +1067,14 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
           color: Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-              color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.4)),
+              color: Theme.of(context).colorScheme.outline.withOpacity(0.4)),
         ),
         child: Row(
           children: [
             Icon(icon,
                 size: 16,
                 color:
-                    Theme.of(context).colorScheme.primary.withValues(alpha: 0.8)),
+                    Theme.of(context).colorScheme.primary.withOpacity(0.8)),
             const SizedBox(width: 6),
             Flexible(
               child: Text(

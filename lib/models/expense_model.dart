@@ -1,10 +1,21 @@
+/// Lightweight expense model used for in-memory operations.
+///
+/// In Firestore, expenses are stored as maps inside the parent [Trip]'s
+/// `expenses` array — not as separate documents. This class is used when
+/// constructing new expense maps via [toMap].
 class Expense {
+  /// Unique ID for this expense, generated client-side with uuid.
   final String id;
-  final String tripId; // Links expense to a specific Trip
+  /// ID of the parent [Trip]. Used to associate expenses before Firestore write.
+  final String tripId;
+  /// Human-readable expense label (e.g. 'Pad Thai', 'Bus ticket').
   final String title;
+  /// Expense amount in the parent trip's currency.
   final double amount;
   final DateTime date;
-  final String category; // e.g., Food, Transport, Hotel [5]
+  /// Category from [TripCategories.defaultList] (Food, Transport, Hotel, Shopping, Other).
+  final String category;
+  /// Optional notes. Null if not provided.
   final String? notes;
 
   Expense({
