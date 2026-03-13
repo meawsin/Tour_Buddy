@@ -36,9 +36,18 @@ class TripProvider with ChangeNotifier {
     try {
       if (_auth.currentUser == null) {
         await _auth.signInAnonymously();
+      } else {
+        // Already signed in from a previous session — sync state immediately
+        _currentUser = _auth.currentUser;
+        await _loadTrips();
       }
     } catch (e) {
       debugPrint("Error signing in anonymously: $e");
+      // Even if anonymous sign-in fails (no network), use existing session if any
+      if (_auth.currentUser != null) {
+        _currentUser = _auth.currentUser;
+        await _loadTrips();
+      }
     }
   }
 
@@ -192,7 +201,14 @@ class TripProvider with ChangeNotifier {
   }
 
   Future<void> addTrip(Trip trip) async {
-    if (_currentUser == null) return;
+    // If no user yet, attempt anonymous sign-in before giving up
+    if (_currentUser == null) {
+      await _signInAnonymously();
+    }
+    if (_currentUser == null) {
+      debugPrint("Cannot add trip: no authenticated user");
+      return;
+    }
 
     try {
       DocumentReference docRef = await _firestore
@@ -258,7 +274,6 @@ class TripProvider with ChangeNotifier {
     if (_currentUser == null || trip.id == null) return;
 
     try {
-      // arrayUnion appends atomically server-side — prevents stale overwrites
       await _firestore
           .collection('trips')
           .doc(_currentUser!.uid)
@@ -273,7 +288,6 @@ class TripProvider with ChangeNotifier {
   Future<void> deleteExpenseFromTrip(
       Trip trip, Map<String, dynamic> expense) async {
     if (_currentUser == null || trip.id == null) return;
-
     try {
       await _firestore
           .collection('trips')

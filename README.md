@@ -6,9 +6,12 @@ A Flutter travel expense tracker with Firebase sync, analytics, PDF expense repo
 
 ## Screenshots
 
-> Add screenshots here after final build — home screen, expense screen, analytics, PDF export.
-
----
+<p float="left">
+  <img src="screenshots/home_dark.png" width="23%" />
+  <img src="screenshots/expense_screen.png" width="23%" />
+  <img src="screenshots/analytics_overview.png" width="23%" />
+  <img src="screenshots/pdf_report.png" width="23%" />
+</p>
 
 ## Features
 

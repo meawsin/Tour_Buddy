@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../theme_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../services/pdf_export_service.dart';
+import '../theme_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:uuid/uuid.dart';
@@ -153,12 +153,12 @@ class _ExpenseScreenState extends State<ExpenseScreen>
                       width: 40, height: 4,
                       margin: const EdgeInsets.only(bottom: 20),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.4),
+                        color: Theme.of(context).colorScheme.outline.withOpacity(0.4),
                         borderRadius: BorderRadius.circular(99),
                       ),
                     ),
                   ),
-                  Text('Add Expense 💸',
+                  Text('Add Expense',
                       style: GoogleFonts.syne(
                           fontSize: 22,
                           fontWeight: FontWeight.w700,
@@ -170,7 +170,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
                           color: Theme.of(context)
                               .colorScheme
                               .onSurface
-                              .withValues(alpha: 0.5))),
+                              .withOpacity(0.5))),
                   const SizedBox(height: 22),
 
                   // Title
@@ -216,7 +216,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
                             width: 66,
                             decoration: BoxDecoration(
                               color: sel
-                                  ? cat.color.withValues(alpha: 0.2)
+                                  ? cat.color.withOpacity(0.2)
                                   : Theme.of(context)
                                       .colorScheme
                                       .surfaceContainerHighest,
@@ -227,7 +227,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
                                     : Theme.of(context)
                                         .colorScheme
                                         .outline
-                                        .withValues(alpha: 0.3),
+                                        .withOpacity(0.3),
                                 width: sel ? 1.5 : 1,
                               ),
                             ),
@@ -241,7 +241,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
                                         : Theme.of(context)
                                             .colorScheme
                                             .onSurface
-                                            .withValues(alpha: 0.5)),
+                                            .withOpacity(0.5)),
                                 const SizedBox(height: 5),
                                 Text(cat.label,
                                     style: TextStyle(
@@ -254,7 +254,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
                                             : Theme.of(context)
                                                 .colorScheme
                                                 .onSurface
-                                                .withValues(alpha: 0.5))),
+                                                .withOpacity(0.5))),
                               ],
                             ),
                           ),
@@ -354,8 +354,8 @@ class _ExpenseScreenState extends State<ExpenseScreen>
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      _primary.withValues(alpha: 0.15),
-                      _tertiary.withValues(alpha: 0.05),
+                      _primary.withOpacity(0.15),
+                      _tertiary.withOpacity(0.05),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -383,7 +383,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
                           children: [
                             Icon(Icons.location_on_rounded,
                                 size: 14,
-                                color: _primary.withValues(alpha: 0.8)),
+                                color: _primary.withOpacity(0.8)),
                             const SizedBox(width: 4),
                             Text(widget.trip.destination,
                                 style: TextStyle(
@@ -391,14 +391,14 @@ class _ExpenseScreenState extends State<ExpenseScreen>
                                     color: Theme.of(context)
                                         .colorScheme
                                         .onSurface
-                                        .withValues(alpha: 0.6))),
+                                        .withOpacity(0.6))),
                             const SizedBox(width: 12),
                             Icon(Icons.calendar_today_rounded,
                                 size: 12,
                                 color: Theme.of(context)
                                     .colorScheme
                                     .onSurface
-                                    .withValues(alpha: 0.4)),
+                                    .withOpacity(0.4)),
                             const SizedBox(width: 4),
                             Text(
                               '${DateFormat('MMM d').format(widget.trip.startDate)} – ${DateFormat('MMM d').format(widget.trip.endDate)}',
@@ -407,7 +407,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
                                   color: Theme.of(context)
                                       .colorScheme
                                       .onSurface
-                                      .withValues(alpha: 0.5)),
+                                      .withOpacity(0.5)),
                             ),
                           ],
                         ),
@@ -434,42 +434,43 @@ class _ExpenseScreenState extends State<ExpenseScreen>
                 icon: const Icon(Icons.share_rounded),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14)),
-                onSelected: (value) {
+                onSelected: (value) async {
                   if (value == 'pdf') {
                     final tripProvider =
                         Provider.of<TripProvider>(context, listen: false);
+                    final themeProvider =
+                        Provider.of<ThemeProvider>(context, listen: false);
                     final liveTrip = tripProvider.trips.firstWhere(
                       (t) => t.id == widget.trip.id,
                       orElse: () => widget.trip,
                     );
-                    final themeProvider =
-                        Provider.of<ThemeProvider>(context, listen: false);
-                    final user = Provider.of<TripProvider>(context, listen: false).currentUser;
-                    final name = (user != null && !user.isAnonymous &&
+                    final user = tripProvider.currentUser;
+                    final name = (user != null &&
+                            !user.isAnonymous &&
                             (user.displayName?.isNotEmpty ?? false))
                         ? user.displayName!
                         : themeProvider.userName;
-                    PdfExportService.exportTrip(context, liveTrip,
+                    await PdfExportService.exportTrip(context, liveTrip,
                         submittedBy: name);
                   } else {
-                    _shareTrip(context);
+                    await _shareTrip(context);
                   }
                 },
                 itemBuilder: (_) => [
-                  PopupMenuItem(
+                  const PopupMenuItem(
                     value: 'pdf',
                     child: Row(children: [
-                      const Icon(Icons.picture_as_pdf_rounded, size: 18),
-                      const SizedBox(width: 10),
-                      const Text('Export as PDF'),
+                      Icon(Icons.picture_as_pdf_rounded, size: 18),
+                      SizedBox(width: 10),
+                      Text('Export as PDF'),
                     ]),
                   ),
-                  PopupMenuItem(
+                  const PopupMenuItem(
                     value: 'text',
                     child: Row(children: [
-                      const Icon(Icons.text_snippet_rounded, size: 18),
-                      const SizedBox(width: 10),
-                      const Text('Share as text'),
+                      Icon(Icons.text_snippet_rounded, size: 18),
+                      SizedBox(width: 10),
+                      Text('Share as text'),
                     ]),
                   ),
                 ],
@@ -561,7 +562,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
                               color: Theme.of(context)
                                   .colorScheme
                                   .onSurface
-                                  .withValues(alpha: 0.4))),
+                                  .withOpacity(0.4))),
                     ),
                   )
                 else
@@ -604,14 +605,14 @@ class _ExpenseScreenState extends State<ExpenseScreen>
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            _primary.withValues(alpha: 0.12),
-            _secondary.withValues(alpha: 0.06),
+            _primary.withOpacity(0.12),
+            _secondary.withOpacity(0.06),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _primary.withValues(alpha: 0.2)),
+        border: Border.all(color: _primary.withOpacity(0.2)),
       ),
       child: Column(
         children: [
@@ -627,14 +628,28 @@ class _ExpenseScreenState extends State<ExpenseScreen>
                             color: Theme.of(context)
                                 .colorScheme
                                 .onSurface
-                                .withValues(alpha: 0.55))),
+                                .withOpacity(0.55))),
                     const SizedBox(height: 4),
                     Text(
-                      '${liveTrip.currency} ${totalSpent.toStringAsFixed(2)}',
+                      liveTrip.currency,
                       style: GoogleFonts.syne(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w800,
-                          color: Theme.of(context).colorScheme.onSurface),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.6)),
+                    ),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        totalSpent.toStringAsFixed(2),
+                        style: GoogleFonts.syne(
+                            fontSize: 36,
+                            fontWeight: FontWeight.w800,
+                            color: Theme.of(context).colorScheme.onSurface),
+                      ),
                     ),
                   ],
                 ),
@@ -673,7 +688,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
                         color: Theme.of(context)
                             .colorScheme
                             .onSurface
-                            .withValues(alpha: 0.45))),
+                            .withOpacity(0.45))),
                 Text('${(_budgetProgressOf(liveTrip) * 100).toInt()}%',
                     style: TextStyle(
                         fontSize: 11,
@@ -688,7 +703,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
                 value: _budgetProgressOf(liveTrip),
                 minHeight: 8,
                 backgroundColor:
-                    Theme.of(context).colorScheme.outline.withValues(alpha: 0.15),
+                    Theme.of(context).colorScheme.outline.withOpacity(0.15),
                 valueColor: AlwaysStoppedAnimation(progressColor),
               ),
             ),
@@ -702,7 +717,6 @@ class _ExpenseScreenState extends State<ExpenseScreen>
   Widget _buildCategoryBreakdown(BuildContext context, Trip liveTrip) {
     final totals = _categoryTotalsOf(liveTrip);
     if (totals.isEmpty) return const SizedBox.shrink();
-    final totalSpent = _totalSpentOf(liveTrip);
     final sorted = totals.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
@@ -717,7 +731,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
         const SizedBox(height: 12),
         ...sorted.map((entry) {
           final cat = categoryFor(entry.key);
-          final pct = totalSpent > 0 ? entry.value / totalSpent : 0.0;
+          final pct = _totalSpent > 0 ? entry.value / _totalSpent : 0.0;
           return Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: Row(
@@ -726,7 +740,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color: cat.color.withValues(alpha: 0.15),
+                    color: cat.color.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(9),
                   ),
                   child: Icon(cat.icon, size: 16, color: cat.color),
@@ -743,7 +757,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
                               style: const TextStyle(
                                   fontSize: 13, fontWeight: FontWeight.w500)),
                           Text(
-                            '${liveTrip.currency} ${entry.value.toStringAsFixed(0)}  (${(pct * 100).toInt()}%)',
+                            '${widget.trip.currency} ${entry.value.toStringAsFixed(0)}  (${(pct * 100).toInt()}%)',
                             style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -760,7 +774,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
                           backgroundColor: Theme.of(context)
                               .colorScheme
                               .outline
-                              .withValues(alpha: 0.12),
+                              .withOpacity(0.12),
                           valueColor: AlwaysStoppedAnimation(cat.color),
                         ),
                       ),
@@ -805,16 +819,16 @@ class _ExpenseScreenState extends State<ExpenseScreen>
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
           color: active
-              ? (cat?.color ?? _primary).withValues(alpha: 0.15)
+              ? (cat?.color ?? _primary).withOpacity(0.15)
               : Theme.of(context)
                   .colorScheme
                   .surfaceContainerHighest
-                  .withValues(alpha: 0.5),
+                  .withOpacity(0.5),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: active
                 ? (cat?.color ?? _primary)
-                : Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+                : Theme.of(context).colorScheme.outline.withOpacity(0.3),
           ),
         ),
         child: Text(
@@ -824,7 +838,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
             fontWeight: active ? FontWeight.w700 : FontWeight.normal,
             color: active
                 ? (cat?.color ?? _primary)
-                : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
           ),
         ),
       ),
@@ -847,7 +861,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
         padding: const EdgeInsets.only(right: 20),
         margin: const EdgeInsets.only(bottom: 10),
         decoration: BoxDecoration(
-          color: _tertiary.withValues(alpha: 0.15),
+          color: _tertiary.withOpacity(0.15),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Icon(Icons.delete_rounded, color: _tertiary),
@@ -877,7 +891,13 @@ class _ExpenseScreenState extends State<ExpenseScreen>
         );
       },
       onDismissed: (_) {
-        tripProvider.deleteExpenseFromTrip(widget.trip, expense);
+        final currentTrip = tripProvider.trips.firstWhere((t) => t.id == widget.trip.id, orElse: () => widget.trip);
+        final updated = List<Map<String, dynamic>>.from(currentTrip.expenses)
+          ..removeWhere(
+              (e) => e['id'] == expense['id'] && e['title'] == expense['title']);
+        currentTrip.expenses.clear();
+        currentTrip.expenses.addAll(updated);
+        tripProvider.updateTrip(currentTrip);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Removed "${expense['title']}"'),
           behavior: SnackBarBehavior.floating,
@@ -894,7 +914,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
               color:
-                  Theme.of(context).colorScheme.outline.withValues(alpha: 0.25)),
+                  Theme.of(context).colorScheme.outline.withOpacity(0.25)),
         ),
         child: Row(
           children: [
@@ -902,7 +922,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: cat.color.withValues(alpha: 0.15),
+                color: cat.color.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(13),
               ),
               child: Icon(cat.icon, color: cat.color, size: 22),
@@ -923,7 +943,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
                         padding: const EdgeInsets.symmetric(
                             horizontal: 7, vertical: 2),
                         decoration: BoxDecoration(
-                          color: cat.color.withValues(alpha: 0.1),
+                          color: cat.color.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(cat.label,
@@ -940,7 +960,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
                             color: Theme.of(context)
                                 .colorScheme
                                 .onSurface
-                                .withValues(alpha: 0.4)),
+                                .withOpacity(0.4)),
                       ),
                     ],
                   ),
@@ -952,7 +972,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
                             color: Theme.of(context)
                                 .colorScheme
                                 .onSurface
-                                .withValues(alpha: 0.4)),
+                                .withOpacity(0.4)),
                         overflow: TextOverflow.ellipsis),
                   ],
                 ],
@@ -982,11 +1002,11 @@ class _ExpenseScreenState extends State<ExpenseScreen>
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: _primary.withValues(alpha: 0.1),
+              color: _primary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(22),
             ),
             child: Icon(Icons.receipt_long_rounded,
-                size: 38, color: _primary.withValues(alpha: 0.6)),
+                size: 38, color: _primary.withOpacity(0.6)),
           ),
           const SizedBox(height: 16),
           Text('No expenses yet',
@@ -1002,7 +1022,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
                   color: Theme.of(context)
                       .colorScheme
                       .onSurface
-                      .withValues(alpha: 0.45),
+                      .withOpacity(0.45),
                   height: 1.5)),
         ],
       ),
@@ -1042,7 +1062,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
                       width: 40, height: 4,
                       margin: const EdgeInsets.only(bottom: 20),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.4),
+                        color: Theme.of(context).colorScheme.outline.withOpacity(0.4),
                         borderRadius: BorderRadius.circular(99),
                       ),
                     ),
@@ -1142,38 +1162,24 @@ class _ExpenseScreenState extends State<ExpenseScreen>
   }
 
   Future<void> _shareTrip(BuildContext context) async {
-    final tripProvider = Provider.of<TripProvider>(context, listen: false);
-    final liveTrip = tripProvider.trips.firstWhere(
-      (t) => t.id == widget.trip.id,
-      orElse: () => widget.trip,
-    );
-    final totalSpent = _totalSpentOf(liveTrip);
     final buffer = StringBuffer();
-    buffer.writeln('Trip: ${liveTrip.name}');
-    buffer.writeln('Destination: ${liveTrip.destination}');
+    buffer.writeln('🗺️ Trip: ${widget.trip.name}');
+    buffer.writeln('📍 ${widget.trip.destination}');
     buffer.writeln(
-        'Dates: ${DateFormat('MMM d').format(liveTrip.startDate)} - ${DateFormat('MMM d, yyyy').format(liveTrip.endDate)}');
+        '📅 ${DateFormat('MMM d').format(widget.trip.startDate)} – ${DateFormat('MMM d, yyyy').format(widget.trip.endDate)}');
     buffer.writeln(
-        'Total Spent: ${liveTrip.currency} ${totalSpent.toStringAsFixed(2)}');
-    if (liveTrip.budget > 0) {
-      final pct = (totalSpent / liveTrip.budget * 100).toInt();
+        'Total Spent: ${widget.trip.currency} ${_totalSpent.toStringAsFixed(2)}');
+    if (widget.trip.budget > 0) {
       buffer.writeln(
-          'Budget: ${liveTrip.currency} ${liveTrip.budget.toStringAsFixed(2)} ($pct% used)');
-      final remaining = liveTrip.budget - totalSpent;
-      if (remaining >= 0) {
-        buffer.writeln('Remaining: ${liveTrip.currency} ${remaining.toStringAsFixed(2)}');
-      } else {
-        buffer.writeln('Over budget by: ${liveTrip.currency} ${(-remaining).toStringAsFixed(2)}');
-      }
+          'Budget: ${widget.trip.currency} ${widget.trip.budget.toStringAsFixed(2)}');
     }
-    buffer.writeln('\nExpenses (${liveTrip.expenses.length} total):');
-    for (final e in liveTrip.expenses) {
-      final cat = e['category'] as String? ?? 'Other';
+    buffer.writeln('\nExpenses:');
+    for (final e in widget.trip.expenses) {
       buffer.writeln(
-          '  ${e['title']} [$cat]: ${liveTrip.currency} ${(e['amount'] as num? ?? 0).toStringAsFixed(2)}');
+          '  ${e['title']}: ${widget.trip.currency} ${(e['amount'] as num).toStringAsFixed(2)}');
     }
     await SharePlus.instance.share(
-      ShareParams(text: buffer.toString(), subject: 'Tour Buddy - ${liveTrip.name}'),
+      ShareParams(text: buffer.toString(), subject: 'Tour Buddy - ${widget.trip.name}'),
     );
   }
 
@@ -1184,7 +1190,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
       child: Row(
         children: [
           Icon(icon, size: 18,
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
           const SizedBox(width: 12),
           Text(label, style: const TextStyle(fontSize: 14)),
         ],
@@ -1202,7 +1208,7 @@ class _ExpenseScreenState extends State<ExpenseScreen>
           fontWeight: FontWeight.w600,
           letterSpacing: 0.5,
           color:
-              Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+              Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
         ),
       ),
     );

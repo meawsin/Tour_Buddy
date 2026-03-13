@@ -169,7 +169,7 @@ class _StartScreenState extends State<StartScreen>
                     onPressed: () async {
                       await tripProvider.signOut();
                       if (context.mounted) {
-                        _showSnack(context, '👋 Signed out successfully');
+                        _showSnack(context, 'Signed out successfully');
                       }
                     },
                   ),
@@ -232,7 +232,14 @@ class _StartScreenState extends State<StartScreen>
                         const Spacer(),
                         if (tripProvider.trips.isNotEmpty)
                           Text(
-                            '${tripProvider.trips.length} active',
+                            () {
+                              final today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+                              final count = tripProvider.trips.where((t) {
+                                final end = DateTime(t.endDate.year, t.endDate.month, t.endDate.day);
+                                return !today.isAfter(end);
+                              }).length;
+                              return '$count active';
+                            }(),
                             style: TextStyle(
                               fontSize: 13,
                               color: _primaryColor,
@@ -422,7 +429,7 @@ class _StartScreenState extends State<StartScreen>
                 final user = tripProvider.currentUser;
                 if (user != null && !user.isAnonymous) {
                   _showSnack(context,
-                      '✓ Signed in as ${user.displayName ?? "Google User"}');
+                      'Signed in as ${user.displayName ?? "Google User"}');
                 } else {
                   _showSnack(context, 'Sign-in cancelled');
                 }
@@ -458,12 +465,12 @@ class _StartScreenState extends State<StartScreen>
       margin: const EdgeInsets.only(bottom: 24),
       child: Row(
         children: [
-          _buildStatChip(context, '✈️', '$totalTrips', 'Trips'),
+          _buildStatChip(context, Icons.flight_takeoff_rounded, _primaryColor, '$totalTrips', 'Trips'),
           const SizedBox(width: 10),
-          _buildStatChip(context, '💰',
+          _buildStatChip(context, Icons.account_balance_wallet_rounded, _secondaryColor,
               '$currency ${totalBudget.toStringAsFixed(0)}', 'Total Budget'),
           const SizedBox(width: 10),
-          _buildStatChip(context, '📍',
+          _buildStatChip(context, Icons.location_on_rounded, _tertiaryColor,
               '${tripProvider.trips.map((t) => t.destination).toSet().length}',
               'Destinations'),
         ],
@@ -472,7 +479,7 @@ class _StartScreenState extends State<StartScreen>
   }
 
   Widget _buildStatChip(
-      BuildContext context, String emoji, String value, String label) {
+      BuildContext context, IconData icon, Color iconColor, String value, String label) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
@@ -480,11 +487,11 @@ class _StartScreenState extends State<StartScreen>
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-              color: Theme.of(context).colorScheme.outline.withOpacity(0.5)),
+              color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5)),
         ),
         child: Column(
           children: [
-            Text(emoji, style: const TextStyle(fontSize: 18)),
+            Icon(icon, size: 18, color: iconColor),
             const SizedBox(height: 4),
             Text(
               value,
@@ -556,8 +563,13 @@ class _StartScreenState extends State<StartScreen>
 
   Widget _buildTripCard(
       BuildContext context, Trip trip, TripProvider tripProvider) {
-    final isActive = DateTime.now().isBefore(trip.endDate) &&
-        DateTime.now().isAfter(trip.startDate.subtract(const Duration(days: 1)));
+    // Date-only comparison to avoid Firestore timestamp time-component issues
+    final today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+    final tripStart = DateTime(trip.startDate.year, trip.startDate.month, trip.startDate.day);
+    final tripEnd = DateTime(trip.endDate.year, trip.endDate.month, trip.endDate.day);
+    final isActive = !today.isBefore(tripStart) && !today.isAfter(tripEnd);
+    final isUpcoming = today.isBefore(tripStart);
+    // isEnded = !isActive && !isUpcoming
     final totalSpent = (trip.expenses as List)
         .fold<double>(0, (sum, e) => sum + (e['amount'] as num).toDouble());
     final budget = trip.budget;
@@ -648,11 +660,15 @@ class _StartScreenState extends State<StartScreen>
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
-                                isActive ? '● Active' : 'Ended',
+                                isActive ? 'Active' : isUpcoming ? 'Upcoming' : 'Ended',
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w600,
-                                  color: isActive ? _primaryColor : Colors.grey,
+                                  color: isActive
+                                      ? _primaryColor
+                                      : isUpcoming
+                                          ? _secondaryColor
+                                          : Colors.grey,
                                 ),
                               ),
                             ),
@@ -678,22 +694,25 @@ class _StartScreenState extends State<StartScreen>
                                     .withOpacity(0.6),
                               ),
                             ),
-                            const SizedBox(width: 10),
+                            const SizedBox(width: 8),
                             Icon(Icons.calendar_today_rounded,
                                 size: 12,
                                 color: Theme.of(context)
                                     .colorScheme
                                     .onSurface
-                                    .withOpacity(0.5)),
+                                    .withValues(alpha: 0.5)),
                             const SizedBox(width: 3),
-                            Text(
-                              '${DateFormat('MMM d').format(trip.startDate)} – ${DateFormat('MMM d').format(trip.endDate)}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurface
-                                    .withOpacity(0.5),
+                            Flexible(
+                              child: Text(
+                                '${DateFormat('MMM d').format(trip.startDate)} – ${DateFormat('MMM d').format(trip.endDate)}',
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurface
+                                      .withValues(alpha: 0.5),
+                                ),
                               ),
                             ),
                           ],
@@ -845,7 +864,7 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
               ),
             ),
             Text(
-              'Plan New Trip ✈️',
+              'Plan New Trip',
               style: GoogleFonts.syne(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,
