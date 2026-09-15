@@ -127,7 +127,7 @@ class SettingsScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
                   DropdownButtonFormField<String>(
-                    value: themeProvider.appCurrency,
+                    initialValue: themeProvider.appCurrency,
                     decoration: InputDecoration(
                       labelText: 'Select Default Currency',
                       border: OutlineInputBorder(

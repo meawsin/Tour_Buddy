@@ -1,19 +1,19 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'expense.dart';
 
 class Trip {
-  String? id; // Firebase document ID
-  String
-      name; // Changed from title to name to match usage in expense_screen.dart
+  String? id;
+  String name;
   String destination;
   DateTime startDate;
   DateTime endDate;
   double budget;
   String currency;
-  List<Map<String, dynamic>> expenses; // Store expenses as a list of maps
+  List<Expense> expenses;
 
   Trip({
     this.id,
-    required this.name, // Changed from title to name
+    required this.name,
     required this.destination,
     required this.startDate,
     required this.endDate,
@@ -22,35 +22,79 @@ class Trip {
     this.expenses = const [],
   });
 
-  // Convert a Trip object to a Map for Firestore
   Map<String, dynamic> toMap() {
     return {
-      'name': name, // Changed from title to name
+      'name': name,
       'destination': destination,
-      'startDate': Timestamp.fromDate(
-          startDate), // Convert DateTime to Firestore Timestamp
-      'endDate': Timestamp.fromDate(
-          endDate), // Convert DateTime to Firestore Timestamp
+      'startDate': Timestamp.fromDate(startDate),
+      'endDate': Timestamp.fromDate(endDate),
       'budget': budget,
       'currency': currency,
-      'expenses': expenses,
+      'expenses': expenses.map((e) => e.toMap()).toList(),
     };
   }
 
-  // Create a Trip object from a Firestore document snapshot
   factory Trip.fromFirestore(DocumentSnapshot doc) {
-    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+    Map<String, dynamic> data = doc.data() as Map<String, dynamic>? ?? {};
+
+    DateTime parsedStartDate;
+    if (data['startDate'] is Timestamp) {
+      parsedStartDate = (data['startDate'] as Timestamp).toDate();
+    } else if (data['startDate'] is String) {
+      parsedStartDate = DateTime.tryParse(data['startDate']) ?? DateTime.now();
+    } else {
+      parsedStartDate = DateTime.now();
+    }
+
+    DateTime parsedEndDate;
+    if (data['endDate'] is Timestamp) {
+      parsedEndDate = (data['endDate'] as Timestamp).toDate();
+    } else if (data['endDate'] is String) {
+      parsedEndDate = DateTime.tryParse(data['endDate']) ?? DateTime.now().add(const Duration(days: 7));
+    } else {
+      parsedEndDate = DateTime.now().add(const Duration(days: 7));
+    }
+
+    List<Expense> parsedExpenses = [];
+    if (data['expenses'] is List) {
+      for (var item in data['expenses']) {
+        if (item is Map) {
+          parsedExpenses.add(Expense.fromMap(Map<String, dynamic>.from(item)));
+        }
+      }
+    }
+
     return Trip(
       id: doc.id,
-      name: data['name'] ?? '', // Changed from title to name
+      name: data['name'] ?? '',
       destination: data['destination'] ?? '',
-      startDate: (data['startDate'] as Timestamp)
-          .toDate(), // Convert Timestamp to DateTime
-      endDate: (data['endDate'] as Timestamp)
-          .toDate(), // Convert Timestamp to DateTime
-      budget: (data['budget'] as num).toDouble(),
-      currency: data['currency'] ?? '',
-      expenses: List<Map<String, dynamic>>.from(data['expenses'] ?? []),
+      startDate: parsedStartDate,
+      endDate: parsedEndDate,
+      budget: (data['budget'] as num?)?.toDouble() ?? 0.0,
+      currency: data['currency'] ?? 'BDT',
+      expenses: parsedExpenses,
+    );
+  }
+
+  Trip copyWith({
+    String? id,
+    String? name,
+    String? destination,
+    DateTime? startDate,
+    DateTime? endDate,
+    double? budget,
+    String? currency,
+    List<Expense>? expenses,
+  }) {
+    return Trip(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      destination: destination ?? this.destination,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
+      budget: budget ?? this.budget,
+      currency: currency ?? this.currency,
+      expenses: expenses ?? this.expenses,
     );
   }
 }

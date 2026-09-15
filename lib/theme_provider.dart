@@ -7,13 +7,15 @@ class ThemeProvider extends ChangeNotifier {
   double _fontSizeMultiplier = 1.0; // Default font size multiplier
   String _appCurrency = 'BDT'; // Default app-wide currency
 
+  // Constructor with required arguments, used by the static init() method
   ThemeProvider(this._themeData, this._fontSizeMultiplier, this._appCurrency);
 
   ThemeData get themeData => _themeData;
   double get fontSizeMultiplier => _fontSizeMultiplier;
   String get appCurrency => _appCurrency;
 
-  get currentTheme => null;
+  // Corrected: This getter now returns the actual ThemeData
+  ThemeData get currentTheme => _themeData; // Changed from 'null'
 
   void toggleTheme() async {
     if (_themeData.brightness == Brightness.dark) {
@@ -45,9 +47,6 @@ class ThemeProvider extends ChangeNotifier {
   static TextStyle? _ensureFontSizeAndScale(
       TextStyle? style, double multiplier) {
     if (style == null) return null;
-    // Provide a default fontSize (e.g., 14.0) if it's null, then scale.
-    // This prevents the assertion error if GoogleFonts or Flutter's defaults
-    // ever provide a null fontSize for a specific TextStyle.
     double baseFontSize =
         style.fontSize ?? 14.0; // Use a sensible default if fontSize is null
     return style.copyWith(fontSize: baseFontSize * multiplier);
@@ -59,11 +58,8 @@ class ThemeProvider extends ChangeNotifier {
     final baseTheme =
         brightness == Brightness.dark ? ThemeData.dark() : ThemeData.light();
 
-    // Get a base TextTheme from GoogleFonts.
     TextTheme poppinsTextTheme = GoogleFonts.poppinsTextTheme();
 
-    // Create a new TextTheme by explicitly copying each TextStyle and ensuring fontSize is not null.
-    // Then apply the fontSizeMultiplier.
     TextTheme scaledTextTheme = poppinsTextTheme.copyWith(
       displayLarge: _ensureFontSizeAndScale(
           poppinsTextTheme.displayLarge, fontSizeMultiplier),
@@ -97,8 +93,6 @@ class ThemeProvider extends ChangeNotifier {
           poppinsTextTheme.labelSmall, fontSizeMultiplier),
     );
 
-    // Apply colors from the base theme's textTheme to the scaled text theme.
-    // This ensures that the text colors match the overall theme (light/dark).
     TextTheme finalColoredTextTheme = scaledTextTheme.copyWith(
       displayLarge: scaledTextTheme.displayLarge
           ?.copyWith(color: baseTheme.textTheme.displayLarge?.color),
@@ -133,7 +127,7 @@ class ThemeProvider extends ChangeNotifier {
     );
 
     return baseTheme.copyWith(
-      textTheme: finalColoredTextTheme, // Use the final textTheme
+      textTheme: finalColoredTextTheme,
       appBarTheme: baseTheme.appBarTheme.copyWith(
         backgroundColor:
             brightness == Brightness.dark ? Colors.grey[850] : Colors.blue,
@@ -145,7 +139,7 @@ class ThemeProvider extends ChangeNotifier {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blueAccent, // Consistent button color
+          backgroundColor: Colors.blueAccent,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
           shape: RoundedRectangleBorder(
@@ -160,6 +154,7 @@ class ThemeProvider extends ChangeNotifier {
     );
   }
 
+  // Static method to initialize ThemeProvider asynchronously
   static Future<ThemeProvider> init() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     bool isDarkTheme = prefs.getBool('isDarkTheme') ?? false;
