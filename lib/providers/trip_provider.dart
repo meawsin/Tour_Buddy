@@ -246,6 +246,33 @@ class TripProvider with ChangeNotifier {
     }
   }
 
+  Future<void> updateExpenseInCurrentTrip(Trip trip, Expense updatedExpense) async {
+    if (_currentUser == null || trip.id == null) {
+      debugPrint("No user logged in or trip ID missing. Cannot update expense.");
+      return;
+    }
+
+    try {
+      final index = trip.expenses.indexWhere((e) => e.id == updatedExpense.id);
+      if (index != -1) {
+        trip.expenses[index] = updatedExpense;
+        notifyListeners();
+
+        await _firestore
+            .collection('trips')
+            .doc(_currentUser!.uid)
+            .collection('userTrips')
+            .doc(trip.id)
+            .update({
+          'expenses': trip.expenses.map((e) => e.toMap()).toList(),
+        });
+        debugPrint("Expense updated for trip: ${trip.name} in Firestore.");
+      }
+    } catch (e) {
+      debugPrint("Error updating expense in trip: $e");
+    }
+  }
+
   Future<void> deleteExpenseFromCurrentTrip(Trip trip, String expenseId) async {
     if (_currentUser == null || trip.id == null) {
       debugPrint("No user logged in or trip ID missing. Cannot delete expense.");

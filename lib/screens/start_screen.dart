@@ -16,198 +16,239 @@ class StartScreen extends StatefulWidget {
 }
 
 class _StartScreenState extends State<StartScreen> {
-  final TextEditingController _tripNameController = TextEditingController();
-  final TextEditingController _destinationController = TextEditingController();
-  final TextEditingController _budgetController = TextEditingController();
+  void _showCreateTripSheet(BuildContext context, TripProvider tripProvider) {
+    final tripNameController = TextEditingController();
+    final destinationController = TextEditingController();
+    final budgetController = TextEditingController();
 
-  DateTime _startDate = DateTime.now();
-  DateTime _endDate = DateTime.now().add(const Duration(days: 7));
-  String _selectedCurrency = 'BDT';
+    DateTime startDate = DateTime.now();
+    DateTime endDate = DateTime.now().add(const Duration(days: 7));
+    String selectedCurrency = 'BDT';
 
-  @override
-  void dispose() {
-    _tripNameController.dispose();
-    _destinationController.dispose();
-    _budgetController.dispose();
-    super.dispose();
-  }
-
-  void _showCreateTripDialog(BuildContext context, TripProvider tripProvider) {
-    _tripNameController.clear();
-    _destinationController.clear();
-    _budgetController.clear();
-    _startDate = DateTime.now();
-    _endDate = DateTime.now().add(const Duration(days: 7));
-    _selectedCurrency = 'BDT';
-
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Create New Trip"),
-          content: StatefulBuilder(
-            builder: (BuildContext context, StateSetter setModalState) {
-              return SingleChildScrollView(
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (BuildContext sheetContext) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setSheetState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
+                left: 20,
+                right: 20,
+                top: 12,
+              ),
+              child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const Text(
+                      'Plan a New Trip',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Trip Name
                     TextField(
-                      controller: _tripNameController,
+                      controller: tripNameController,
+                      autofocus: true,
                       decoration: InputDecoration(
                         labelText: 'Trip Name',
+                        hintText: 'e.g. Summer in Cox\'s Bazar',
+                        prefixIcon: const Icon(Icons.flight_takeoff_rounded),
                         border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 14),
+
+                    // Destination
                     TextField(
-                      controller: _destinationController,
+                      controller: destinationController,
                       decoration: InputDecoration(
                         labelText: 'Destination',
+                        hintText: 'e.g. Cox\'s Bazar, Bangladesh',
+                        prefixIcon: const Icon(Icons.location_on_outlined),
                         border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8)),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _budgetController,
-                      decoration: InputDecoration(
-                        labelText: 'Budget',
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8)),
-                      ),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      initialValue: _selectedCurrency,
-                      decoration: InputDecoration(
-                        labelText: 'Currency',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8.0),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
                       ),
-                      onChanged: (String? newValue) {
-                        if (newValue != null) {
-                          setModalState(() {
-                            _selectedCurrency = newValue;
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Budget & Currency Row
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: TextField(
+                            controller: budgetController,
+                            decoration: InputDecoration(
+                              labelText: 'Budget',
+                              prefixIcon:
+                                  const Icon(Icons.account_balance_wallet_outlined),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          flex: 2,
+                          child: DropdownButtonFormField<String>(
+                            initialValue: selectedCurrency,
+                            decoration: InputDecoration(
+                              labelText: 'Currency',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onChanged: (val) {
+                              if (val != null) {
+                                setSheetState(() {
+                                  selectedCurrency = val;
+                                });
+                              }
+                            },
+                            items: ['BDT', 'USD', 'EUR', 'GBP', 'INR']
+                                .map((c) =>
+                                    DropdownMenuItem(value: c, child: Text(c)))
+                                .toList(),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Date Range Selector Tile
+                    InkWell(
+                      onTap: () async {
+                        final picked = await showDateRangePicker(
+                          context: context,
+                          firstDate: DateTime(2000),
+                          lastDate: DateTime(2101),
+                          initialDateRange: DateTimeRange(
+                            start: startDate,
+                            end: endDate.isBefore(startDate)
+                                ? startDate.add(const Duration(days: 1))
+                                : endDate,
+                          ),
+                        );
+                        if (picked != null) {
+                          setSheetState(() {
+                            startDate = picked.start;
+                            endDate = picked.end;
                           });
                         }
                       },
-                      items: <String>['BDT', 'USD', 'EUR', 'GBP', 'INR']
-                          .map<DropdownMenuItem<String>>((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value),
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade400),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.calendar_month_outlined),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Travel Dates',
+                                      style: TextStyle(
+                                          fontSize: 12, color: Colors.grey)),
+                                  Text(
+                                    '${DateFormat('MMM d, yyyy').format(startDate)} – ${DateFormat('MMM d, yyyy').format(endDate)}',
+                                    style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.edit, size: 18),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Submit Button
+                    ElevatedButton(
+                      onPressed: () async {
+                        final name = tripNameController.text.trim();
+                        final dest = destinationController.text.trim();
+
+                        if (name.isEmpty || dest.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Please enter a trip name and destination.')),
+                          );
+                          return;
+                        }
+
+                        final newTrip = Trip(
+                          id: const Uuid().v4(),
+                          name: name,
+                          destination: dest,
+                          startDate: startDate,
+                          endDate: endDate,
+                          budget: double.tryParse(budgetController.text) ?? 0.0,
+                          currency: selectedCurrency,
+                          expenses: [],
                         );
-                      }).toList(),
+
+                        await tripProvider.addTrip(newTrip);
+
+                        if (!sheetContext.mounted) return;
+                        tripProvider.selectTrip(newTrip);
+                        Navigator.of(sheetContext).pop();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) =>
+                                  ExpenseScreen(trip: newTrip)),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 50),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
+                      ),
+                      child: const Text('Create Trip',
+                          style: TextStyle(fontSize: 16)),
                     ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Text(
-                            'Start Date: ${DateFormat('yyyy-MM-dd').format(_startDate)}'),
-                        const Spacer(),
-                        ElevatedButton(
-                          onPressed: () async {
-                            final DateTime? picked = await showDatePicker(
-                              context: context,
-                              initialDate: _startDate,
-                              firstDate: DateTime(2000),
-                              lastDate: DateTime(2101),
-                            );
-                            if (picked != null && picked != _startDate) {
-                              setModalState(() {
-                                _startDate = picked;
-                                if (_endDate.isBefore(_startDate)) {
-                                  _endDate =
-                                      _startDate.add(const Duration(days: 7));
-                                }
-                              });
-                            }
-                          },
-                          child: const Text('Change'),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Text(
-                            'End Date: ${DateFormat('yyyy-MM-dd').format(_endDate)}'),
-                        const Spacer(),
-                        ElevatedButton(
-                          onPressed: () async {
-                            final DateTime? picked = await showDatePicker(
-                              context: context,
-                              initialDate: _endDate,
-                              firstDate: DateTime(2000),
-                              lastDate: DateTime(2101),
-                            );
-                            if (picked != null && picked != _endDate) {
-                              setModalState(() {
-                                _endDate = picked;
-                                if (_startDate.isAfter(_endDate)) {
-                                  _startDate = _endDate
-                                      .subtract(const Duration(days: 7));
-                                }
-                              });
-                            }
-                          },
-                          child: const Text('Change'),
-                        ),
-                      ],
-                    ),
+                    const SizedBox(height: 20),
                   ],
                 ),
-              );
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text("Cancel"),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (_tripNameController.text.trim().isEmpty ||
-                    _destinationController.text.trim().isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Please fill in all trip details.')),
-                  );
-                  return;
-                }
-
-                final newTrip = Trip(
-                  id: const Uuid().v4(),
-                  name: _tripNameController.text.trim(),
-                  destination: _destinationController.text.trim(),
-                  startDate: _startDate,
-                  endDate: _endDate,
-                  budget: double.tryParse(_budgetController.text) ?? 0.0,
-                  currency: _selectedCurrency,
-                  expenses: [],
-                );
-
-                await tripProvider.addTrip(newTrip);
-
-                if (!context.mounted) return;
-                tripProvider.selectTrip(newTrip);
-                Navigator.of(context).pop();
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => ExpenseScreen(trip: newTrip)),
-                );
-              },
-              child: const Text("Create"),
-            ),
-          ],
+              ),
+            );
+          },
         );
       },
     );
@@ -216,25 +257,32 @@ class _StartScreenState extends State<StartScreen> {
   @override
   Widget build(BuildContext context) {
     final tripProvider = Provider.of<TripProvider>(context);
+    final today = DateTime.now();
+    final todayDateOnly = DateTime(today.year, today.month, today.day);
+
+    // Filter active & upcoming trips (endDate is today or in future)
+    final activeTrips = tripProvider.trips.where((t) {
+      final tripEndDate =
+          DateTime(t.endDate.year, t.endDate.month, t.endDate.day);
+      return !tripEndDate.isBefore(todayDateOnly);
+    }).toList();
+
+    // Past completed trips
+    final pastTrips = tripProvider.trips.where((t) {
+      final tripEndDate =
+          DateTime(t.endDate.year, t.endDate.month, t.endDate.day);
+      return tripEndDate.isBefore(todayDateOnly);
+    }).toList();
+
+    final user = tripProvider.currentUser;
+    final isGoogleUser = user != null && !user.isAnonymous;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Tour Buddy'),
         actions: [
-          if (tripProvider.currentUser != null)
-            IconButton(
-              icon: const Icon(Icons.logout),
-              tooltip: 'Sign Out',
-              onPressed: () async {
-                await tripProvider.signOut();
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Signed out successfully.')),
-                );
-              },
-            ),
           IconButton(
-            icon: const Icon(Icons.history),
+            icon: const Icon(Icons.history_rounded),
             tooltip: 'Past Trips',
             onPressed: () {
               Navigator.push(
@@ -254,173 +302,355 @@ class _StartScreenState extends State<StartScreen> {
               );
             },
           ),
+          if (isGoogleUser)
+            PopupMenuButton<String>(
+              icon: CircleAvatar(
+                radius: 14,
+                backgroundColor: Colors.white,
+                child: Text(
+                  (user.displayName ?? 'U').substring(0, 1).toUpperCase(),
+                  style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue),
+                ),
+              ),
+              onSelected: (val) async {
+                if (val == 'signout') {
+                  await tripProvider.signOut();
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Signed out.')),
+                  );
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  enabled: false,
+                  child: Text(
+                    user.displayName ?? user.email ?? 'User',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'signout',
+                  child: Row(
+                    children: [
+                      Icon(Icons.logout, size: 18),
+                      SizedBox(width: 8),
+                      Text('Sign Out'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (tripProvider.currentUser == null ||
-                tripProvider.currentUser!.isAnonymous)
-              Card(
-                margin: const EdgeInsets.only(bottom: 20),
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      Text(
-                        'Cloud Backup & Sync',
-                        style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.primary),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Sign in to securely back up your trips and access them across devices.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 14),
-                      ),
-                      const SizedBox(height: 14),
-                      ElevatedButton.icon(
-                        onPressed: () async {
-                          await tripProvider.signInWithGoogle();
-                          if (!context.mounted) return;
-                          if (tripProvider.currentUser != null &&
-                              !tripProvider.currentUser!.isAnonymous) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                  content: Text(
-                                      'Signed in as ${tripProvider.currentUser!.displayName ?? "User"}')),
-                            );
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text(
-                                      'Google Sign-In was cancelled or failed.')),
-                            );
-                          }
-                        },
-                        icon: Image.asset(
-                          'assets/images/google_logo.png',
-                          height: 20.0,
-                          width: 20.0,
-                        ),
-                        label: const Text('Sign in with Google'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: Colors.black87,
-                          minimumSize: const Size(double.infinity, 46),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            side: const BorderSide(color: Colors.grey),
+      body: CustomScrollView(
+        slivers: [
+          // Non-intrusive Cloud Sync Banner when not signed in
+          if (!isGoogleUser)
+            SliverToBoxAdapter(
+              child: Container(
+                margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
+                ),
+                child: Row(
+                  children: [
+                    Image.asset(
+                      'assets/images/google_logo.png',
+                      height: 22,
+                      width: 22,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Enable Cloud Backup',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                          textStyle: const TextStyle(fontSize: 16),
+                          Text(
+                            'Sync trips across all your devices',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () async {
+                        await tripProvider.signInWithGoogle();
+                        if (!context.mounted) return;
+                        if (tripProvider.currentUser != null &&
+                            !tripProvider.currentUser!.isAnonymous) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                                content: Text(
+                                    'Signed in as ${tripProvider.currentUser!.displayName ?? "User"}')),
+                          );
+                        }
+                      },
+                      child: const Text('Sign In'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          // Section Title
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Active & Upcoming',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  if (pastTrips.isNotEmpty)
+                    InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const PastTripsScreen()),
+                        );
+                      },
+                      child: Text(
+                        'Past Trips (${pastTrips.length})',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+
+          // Trip List or Empty State
+          if (activeTrips.isEmpty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.travel_explore_outlined,
+                          size: 64, color: Colors.grey[350]),
+                      const SizedBox(height: 16),
+                      Text(
+                        pastTrips.isNotEmpty
+                            ? 'No active or upcoming trips.'
+                            : 'No trips planned yet.',
+                        style: TextStyle(fontSize: 17, color: Colors.grey[700]),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Start a new journey by creating a trip.',
+                        style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+                      ),
+                      const SizedBox(height: 20),
+                      ElevatedButton.icon(
+                        onPressed: () =>
+                            _showCreateTripSheet(context, tripProvider),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Create New Trip'),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 24, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
                         ),
                       ),
                     ],
                   ),
                 ),
               ),
+            )
+          else
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final trip = activeTrips[index];
+                  final totalSpent =
+                      trip.expenses.fold(0.0, (sum, e) => sum + e.amount);
 
-            Text(
-              'Your Current Trips',
-              style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.primary),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 12),
-            tripProvider.trips.isEmpty
-                ? Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.travel_explore_outlined,
-                            size: 72, color: Colors.grey[400]),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No trips yet. Start a new adventure.',
-                          style:
-                              TextStyle(fontSize: 16, color: Colors.grey[600]),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 20),
-                        ElevatedButton.icon(
-                          onPressed: () =>
-                              _showCreateTripDialog(context, tripProvider),
-                          icon: const Icon(Icons.add),
-                          label: const Text('Create New Trip'),
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 24, vertical: 12),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12)),
-                            textStyle: const TextStyle(fontSize: 16),
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : Expanded(
-                    child: ListView.builder(
-                      itemCount: tripProvider.trips.length,
-                      itemBuilder: (context, index) {
-                        final trip = tripProvider.trips[index];
-                        return Card(
-                          margin: const EdgeInsets.symmetric(vertical: 6),
-                          elevation: 1.5,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 8),
-                            title: Text(
-                              trip.name,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 17),
-                            ),
-                            subtitle: Text(
-                              '${trip.destination} • ${DateFormat('MMM d').format(trip.startDate)} - ${DateFormat('MMM d, yyyy').format(trip.endDate)}',
-                              style: TextStyle(color: Colors.grey[700]),
-                            ),
-                            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                            onTap: () {
-                              tripProvider.selectTrip(trip);
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) =>
-                                        ExpenseScreen(trip: trip)),
-                              );
-                            },
-                          ),
+                  return Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    child: InkWell(
+                      onTap: () {
+                        tripProvider.selectTrip(trip);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => ExpenseScreen(trip: trip)),
                         );
                       },
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).cardColor,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.grey.withValues(alpha: 0.12),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.02),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment:
+                                  MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    trip.name,
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .primary
+                                        .withValues(alpha: 0.08),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    trip.currency,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                const Icon(Icons.location_on_outlined,
+                                    size: 15, color: Colors.grey),
+                                const SizedBox(width: 4),
+                                Text(
+                                  trip.destination,
+                                  style: TextStyle(
+                                      fontSize: 13, color: Colors.grey[700]),
+                                ),
+                                const SizedBox(width: 12),
+                                const Icon(Icons.calendar_today_outlined,
+                                    size: 14, color: Colors.grey),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${DateFormat('MMM d').format(trip.startDate)} - ${DateFormat('MMM d, yyyy').format(trip.endDate)}',
+                                  style: TextStyle(
+                                      fontSize: 13, color: Colors.grey[700]),
+                                ),
+                              ],
+                            ),
+                            if (trip.budget > 0) ...[
+                              const SizedBox(height: 14),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(3),
+                                child: LinearProgressIndicator(
+                                  value: (totalSpent /
+                                          trip.budget.clamp(0.01, double.infinity))
+                                      .clamp(0.0, 1.0),
+                                  minHeight: 5,
+                                  backgroundColor: Colors.grey[200],
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    totalSpent > trip.budget
+                                        ? Colors.redAccent
+                                        : Colors.teal,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Spent: ${trip.currency} ${totalSpent.toStringAsFixed(0)}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: totalSpent > trip.budget
+                                          ? Colors.red
+                                          : Colors.grey[800],
+                                    ),
+                                  ),
+                                  Text(
+                                    'Budget: ${trip.currency} ${trip.budget.toStringAsFixed(0)}',
+                                    style: TextStyle(
+                                        fontSize: 12, color: Colors.grey[600]),
+                                  ),
+                                ],
+                              ),
+                            ] else ...[
+                              const SizedBox(height: 10),
+                              Text(
+                                'Total Spent: ${trip.currency} ${totalSpent.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-            if (tripProvider.trips.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 16.0),
-                child: ElevatedButton.icon(
-                  onPressed: () => _showCreateTripDialog(context, tripProvider),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Create New Trip'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    textStyle: const TextStyle(fontSize: 16),
-                  ),
-                ),
+                  );
+                },
+                childCount: activeTrips.length,
               ),
-          ],
-        ),
+            ),
+          const SliverToBoxAdapter(
+            child: SizedBox(height: 80),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showCreateTripSheet(context, tripProvider),
+        icon: const Icon(Icons.add),
+        label: const Text('New Trip'),
       ),
     );
   }
