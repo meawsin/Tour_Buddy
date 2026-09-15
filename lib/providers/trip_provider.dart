@@ -297,6 +297,28 @@ class TripProvider with ChangeNotifier {
     }
   }
 
+  Future<void> updateTripNotes(Trip trip, String notes) async {
+    if (_currentUser == null || trip.id == null) {
+      debugPrint("No user logged in or trip ID missing.");
+      return;
+    }
+
+    try {
+      trip.notes = notes;
+      notifyListeners();
+
+      await _firestore
+          .collection('trips')
+          .doc(_currentUser!.uid)
+          .collection('userTrips')
+          .doc(trip.id)
+          .update({'notes': notes});
+      debugPrint("Notes updated for trip: ${trip.name}");
+    } catch (e) {
+      debugPrint("Error updating trip notes: $e");
+    }
+  }
+
   Future<void> resetCurrentTripExpenses(Trip trip) async {
     if (_currentUser == null || trip.id == null) {
       debugPrint("No user logged in or trip ID missing. Cannot reset expenses.");

@@ -67,11 +67,13 @@ void main() {
             date: DateTime(2026, 6, 1),
           ),
         ],
+        notes: 'Hotel: Grand Sylhet\nDay 1: Ratargul',
       );
 
       final map = trip.toMap();
       expect(map['name'], 'Sylhet Tour');
       expect(map['budget'], 15000.0);
+      expect(map['notes'], 'Hotel: Grand Sylhet\nDay 1: Ratargul');
       expect(map['expenses'], isA<List>());
       expect((map['expenses'] as List).length, 1);
     });

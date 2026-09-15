@@ -10,6 +10,7 @@ class Trip {
   double budget;
   String currency;
   List<Expense> expenses;
+  String? notes;
 
   Trip({
     this.id,
@@ -20,6 +21,7 @@ class Trip {
     required this.budget,
     required this.currency,
     this.expenses = const [],
+    this.notes,
   });
 
   Map<String, dynamic> toMap() {
@@ -31,6 +33,7 @@ class Trip {
       'budget': budget,
       'currency': currency,
       'expenses': expenses.map((e) => e.toMap()).toList(),
+      if (notes != null) 'notes': notes,
     };
   }
 
@@ -73,6 +76,7 @@ class Trip {
       budget: (data['budget'] as num?)?.toDouble() ?? 0.0,
       currency: data['currency'] ?? 'BDT',
       expenses: parsedExpenses,
+      notes: data['notes'] as String?,
     );
   }
 
@@ -85,6 +89,7 @@ class Trip {
     double? budget,
     String? currency,
     List<Expense>? expenses,
+    String? notes,
   }) {
     return Trip(
       id: id ?? this.id,
@@ -95,6 +100,7 @@ class Trip {
       budget: budget ?? this.budget,
       currency: currency ?? this.currency,
       expenses: expenses ?? this.expenses,
+      notes: notes ?? this.notes,
     );
   }
 }

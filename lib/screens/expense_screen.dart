@@ -31,6 +31,20 @@ class ExpenseScreen extends StatefulWidget {
 
 class _ExpenseScreenState extends State<ExpenseScreen> {
   ExpenseSortOption _currentSortOption = ExpenseSortOption.dateDesc;
+  late TextEditingController _notesController;
+  bool _isNotesInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _notesController = TextEditingController(text: widget.trip.notes ?? '');
+  }
+
+  @override
+  void dispose() {
+    _notesController.dispose();
+    super.dispose();
+  }
 
   List<Expense> _getSortedExpenses(List<Expense> expenses) {
     List<Expense> sortedList = List.from(expenses);
@@ -63,406 +77,562 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
       orElse: () => widget.trip,
     );
 
+    if (!_isNotesInitialized && currentTrip.notes != null) {
+      _notesController.text = currentTrip.notes!;
+      _isNotesInitialized = true;
+    }
+
     final double totalExpense =
         currentTrip.expenses.fold(0.0, (sum, item) => sum + item.amount);
     final List<Expense> sortedExpenses = _getSortedExpenses(currentTrip.expenses);
     final bool isOverBudget =
         currentTrip.budget > 0 && totalExpense > currentTrip.budget;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(currentTrip.name),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.analytics_outlined),
-            tooltip: 'Insights',
-            onPressed: () => _showTripInsightsSheet(context, currentTrip),
-          ),
-          PopupMenuButton<ExpenseSortOption>(
-            icon: const Icon(Icons.sort_rounded),
-            tooltip: 'Sort Expenses',
-            onSelected: (ExpenseSortOption result) {
-              setState(() {
-                _currentSortOption = result;
-              });
-            },
-            itemBuilder: (BuildContext context) => [
-              const PopupMenuItem(
-                value: ExpenseSortOption.dateDesc,
-                child: Text('Newest first'),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(currentTrip.name),
+          bottom: const TabBar(
+            tabs: [
+              Tab(
+                icon: Icon(Icons.receipt_long_outlined),
+                text: 'Expenses',
               ),
-              const PopupMenuItem(
-                value: ExpenseSortOption.dateAsc,
-                child: Text('Oldest first'),
-              ),
-              const PopupMenuItem(
-                value: ExpenseSortOption.amountDesc,
-                child: Text('Highest amount'),
-              ),
-              const PopupMenuItem(
-                value: ExpenseSortOption.amountAsc,
-                child: Text('Lowest amount'),
-              ),
-              const PopupMenuItem(
-                value: ExpenseSortOption.categoryAsc,
-                child: Text('By category'),
+              Tab(
+                icon: Icon(Icons.event_note_outlined),
+                text: 'Itinerary & Notes',
               ),
             ],
           ),
-          IconButton(
-            icon: const Icon(Icons.share_outlined),
-            tooltip: 'Share',
-            onPressed: () => _shareTrip(context, currentTrip),
-          ),
-          IconButton(
-            icon: const Icon(Icons.tune_rounded),
-            tooltip: 'Trip Settings',
-            onPressed: () => _showTripSettingsSheet(context, currentTrip),
-          ),
-        ],
-      ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: <Widget>[
-            DrawerHeader(
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  const Text(
-                    'Tour Buddy',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    currentTrip.name,
-                    style: const TextStyle(color: Colors.white70, fontSize: 15),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.analytics_outlined),
+              tooltip: 'Insights',
+              onPressed: () => _showTripInsightsSheet(context, currentTrip),
             ),
-            ListTile(
-              leading: const Icon(Icons.home_outlined),
-              title: const Text('Home'),
-              onTap: () {
-                Navigator.of(context).pop();
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (context) => const StartScreen()),
-                  (route) => false,
-                );
+            PopupMenuButton<ExpenseSortOption>(
+              icon: const Icon(Icons.sort_rounded),
+              tooltip: 'Sort Expenses',
+              onSelected: (ExpenseSortOption result) {
+                setState(() {
+                  _currentSortOption = result;
+                });
               },
+              itemBuilder: (BuildContext context) => [
+                const PopupMenuItem(
+                  value: ExpenseSortOption.dateDesc,
+                  child: Text('Newest first'),
+                ),
+                const PopupMenuItem(
+                  value: ExpenseSortOption.dateAsc,
+                  child: Text('Oldest first'),
+                ),
+                const PopupMenuItem(
+                  value: ExpenseSortOption.amountDesc,
+                  child: Text('Highest amount'),
+                ),
+                const PopupMenuItem(
+                  value: ExpenseSortOption.amountAsc,
+                  child: Text('Lowest amount'),
+                ),
+                const PopupMenuItem(
+                  value: ExpenseSortOption.categoryAsc,
+                  child: Text('By category'),
+                ),
+              ],
             ),
-            ListTile(
-              leading: const Icon(Icons.history_rounded),
-              title: const Text('Past Trips'),
-              onTap: () {
-                Navigator.of(context).pop();
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (context) => const PastTripsScreen()),
-                  (route) => false,
-                );
-              },
+            IconButton(
+              icon: const Icon(Icons.share_outlined),
+              tooltip: 'Share',
+              onPressed: () => _shareTrip(context, currentTrip),
             ),
-            ListTile(
-              leading: const Icon(Icons.settings_outlined),
-              title: const Text('Settings'),
-              onTap: () {
-                Navigator.of(context).pop();
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const SettingsScreen()),
-                );
-              },
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.delete_sweep_outlined, color: Colors.redAccent),
-              title: const Text(
-                'Reset Trip Expenses',
-                style: TextStyle(color: Colors.redAccent),
-              ),
-              onTap: () {
-                Navigator.of(context).pop();
-                _showResetConfirmationDialog(context, tripProvider, currentTrip);
-              },
+            IconButton(
+              icon: const Icon(Icons.tune_rounded),
+              tooltip: 'Trip Settings',
+              onPressed: () => _showTripSettingsSheet(context, currentTrip),
             ),
           ],
         ),
-      ),
-      body: Column(
-        children: [
-          // Budget Summary Card
-          Container(
-            width: double.infinity,
-            margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
+        drawer: Drawer(
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: <Widget>[
+              DrawerHeader(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
                 ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Text(
-                      'Total Spent',
+                    const Text(
+                      'Tour Buddy',
                       style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w500,
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    if (currentTrip.budget > 0)
-                      Text(
-                        'Budget: ${currentTrip.currency} ${currentTrip.budget.toStringAsFixed(2)}',
-                        style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-                      ),
+                    const SizedBox(height: 6),
+                    Text(
+                      currentTrip.name,
+                      style: const TextStyle(color: Colors.white70, fontSize: 15),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  '${currentTrip.currency} ${totalExpense.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                  ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.home_outlined),
+                title: const Text('Home'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (context) => const StartScreen()),
+                    (route) => false,
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.history_rounded),
+                title: const Text('Past Trips'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const PastTripsScreen()),
+                    (route) => false,
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.settings_outlined),
+                title: const Text('Settings'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                  );
+                },
+              ),
+              const Divider(),
+              ListTile(
+                leading:
+                    const Icon(Icons.delete_sweep_outlined, color: Colors.redAccent),
+                title: const Text(
+                  'Reset Trip Expenses',
+                  style: TextStyle(color: Colors.redAccent),
                 ),
-                if (currentTrip.budget > 0) ...[
-                  const SizedBox(height: 12),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: (totalExpense / currentTrip.budget.clamp(0.01, double.infinity))
-                          .clamp(0.0, 1.0),
-                      minHeight: 6,
-                      backgroundColor: Colors.grey[200],
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        isOverBudget ? Colors.redAccent : Colors.teal,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    isOverBudget
-                        ? 'Over budget by ${currentTrip.currency} ${(totalExpense - currentTrip.budget).toStringAsFixed(2)}'
-                        : '${currentTrip.currency} ${(currentTrip.budget - totalExpense).toStringAsFixed(2)} remaining',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: isOverBudget ? Colors.redAccent : Colors.teal[700],
-                    ),
-                  ),
-                ],
-              ],
-            ),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _showResetConfirmationDialog(
+                      context, tripProvider, currentTrip);
+                },
+              ),
+            ],
           ),
-
-          // Expenses List Header
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        ),
+        body: TabBarView(
+          children: [
+            // TAB 1: Expenses View
+            Column(
               children: [
-                Text(
-                  'Expenses (${sortedExpenses.length})',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+                // Budget Summary Card
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                ),
-                if (sortedExpenses.isNotEmpty)
-                  Text(
-                    'Swipe to delete • Tap to edit',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-                  ),
-              ],
-            ),
-          ),
-
-          // Expenses List
-          Expanded(
-            child: sortedExpenses.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.receipt_long_outlined,
-                            size: 56, color: Colors.grey[350]),
-                        const SizedBox(height: 12),
-                        Text(
-                          'No expenses logged yet.',
-                          style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Total Spent',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          if (currentTrip.budget > 0)
+                            Text(
+                              'Budget: ${currentTrip.currency} ${currentTrip.budget.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                  fontSize: 13, color: Colors.grey[600]),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '${currentTrip.currency} ${totalExpense.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
                         ),
-                        const SizedBox(height: 4),
+                      ),
+                      if (currentTrip.budget > 0) ...[
+                        const SizedBox(height: 12),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: (totalExpense /
+                                    currentTrip.budget
+                                        .clamp(0.01, double.infinity))
+                                .clamp(0.0, 1.0),
+                            minHeight: 6,
+                            backgroundColor: Colors.grey[200],
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              isOverBudget ? Colors.redAccent : Colors.teal,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
                         Text(
-                          'Tap below to add your first expense.',
-                          style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+                          isOverBudget
+                              ? 'Over budget by ${currentTrip.currency} ${(totalExpense - currentTrip.budget).toStringAsFixed(2)}'
+                              : '${currentTrip.currency} ${(currentTrip.budget - totalExpense).toStringAsFixed(2)} remaining',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: isOverBudget
+                                ? Colors.redAccent
+                                : Colors.teal[700],
+                          ),
                         ),
                       ],
-                    ),
-                  )
-                : ListView.builder(
-                    itemCount: sortedExpenses.length,
-                    padding: const EdgeInsets.only(bottom: 80),
-                    itemBuilder: (context, index) {
-                      final expense = sortedExpenses[index];
-                      final categoryInfo =
-                          ExpenseCategory.getCategory(expense.category);
+                    ],
+                  ),
+                ),
 
-                      return Dismissible(
-                        key: Key(expense.id),
-                        direction: DismissDirection.endToStart,
-                        background: Container(
-                          alignment: Alignment.centerRight,
-                          padding: const EdgeInsets.symmetric(horizontal: 24),
-                          color: Colors.redAccent,
-                          child: const Icon(Icons.delete_outline,
-                              color: Colors.white, size: 24),
+                // Expenses List Header
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Expenses (${sortedExpenses.length})',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
                         ),
-                        confirmDismiss: (direction) async {
-                          return true;
-                        },
-                        onDismissed: (_) {
-                          tripProvider.deleteExpenseFromCurrentTrip(
-                              currentTrip, expense.id);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Removed "${expense.title}"'),
-                              action: SnackBarAction(
-                                label: 'Undo',
-                                onPressed: () {
-                                  tripProvider.addExpenseToCurrentTrip(
-                                      currentTrip, expense);
-                                },
+                      ),
+                      if (sortedExpenses.isNotEmpty)
+                        Text(
+                          'Swipe to delete • Tap to edit',
+                          style:
+                              TextStyle(fontSize: 12, color: Colors.grey[500]),
+                        ),
+                    ],
+                  ),
+                ),
+
+                // Expenses List
+                Expanded(
+                  child: sortedExpenses.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.receipt_long_outlined,
+                                  size: 56, color: Colors.grey[350]),
+                              const SizedBox(height: 12),
+                              Text(
+                                'No expenses logged yet.',
+                                style: TextStyle(
+                                    fontSize: 16, color: Colors.grey[600]),
                               ),
-                            ),
-                          );
-                        },
-                        child: InkWell(
-                          onTap: () {
-                            _showAddOrEditExpenseSheet(
-                              context,
-                              tripProvider,
-                              currentTrip,
-                              existingExpense: expense,
-                            );
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 6),
-                            child: Container(
-                              padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).cardColor,
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                  color: Colors.grey.withValues(alpha: 0.12),
-                                ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Tap below to add your first expense.',
+                                style: TextStyle(
+                                    fontSize: 13, color: Colors.grey[500]),
                               ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 44,
-                                    height: 44,
-                                    decoration: BoxDecoration(
-                                      color: categoryInfo.color.withValues(alpha: 0.12),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Icon(
-                                      categoryInfo.icon,
-                                      color: categoryInfo.color,
-                                      size: 22,
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
+                          itemCount: sortedExpenses.length,
+                          padding: const EdgeInsets.only(bottom: 80),
+                          itemBuilder: (context, index) {
+                            final expense = sortedExpenses[index];
+                            final categoryInfo =
+                                ExpenseCategory.getCategory(expense.category);
+
+                            return Dismissible(
+                              key: Key(expense.id),
+                              direction: DismissDirection.endToStart,
+                              background: Container(
+                                alignment: Alignment.centerRight,
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 24),
+                                color: Colors.redAccent,
+                                child: const Icon(Icons.delete_outline,
+                                    color: Colors.white, size: 24),
+                              ),
+                              confirmDismiss: (direction) async => true,
+                              onDismissed: (_) {
+                                tripProvider.deleteExpenseFromCurrentTrip(
+                                    currentTrip, expense.id);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content:
+                                        Text('Removed "${expense.title}"'),
+                                    action: SnackBarAction(
+                                      label: 'Undo',
+                                      onPressed: () {
+                                        tripProvider.addExpenseToCurrentTrip(
+                                            currentTrip, expense);
+                                      },
                                     ),
                                   ),
-                                  const SizedBox(width: 14),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                );
+                              },
+                              child: InkWell(
+                                onTap: () {
+                                  _showAddOrEditExpenseSheet(
+                                    context,
+                                    tripProvider,
+                                    currentTrip,
+                                    existingExpense: expense,
+                                  );
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 6),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(14),
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context).cardColor,
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(
+                                        color:
+                                            Colors.grey.withValues(alpha: 0.12),
+                                      ),
+                                    ),
+                                    child: Row(
                                       children: [
-                                        Text(
-                                          expense.title,
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
+                                        Container(
+                                          width: 44,
+                                          height: 44,
+                                          decoration: BoxDecoration(
+                                            color: categoryInfo.color
+                                                .withValues(alpha: 0.12),
+                                            borderRadius:
+                                                BorderRadius.circular(12),
                                           ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
+                                          child: Icon(
+                                            categoryInfo.icon,
+                                            color: categoryInfo.color,
+                                            size: 22,
+                                          ),
                                         ),
-                                        const SizedBox(height: 3),
-                                        Text(
-                                          '${DateFormat('MMM d, h:mm a').format(expense.date)} • ${expense.category}',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey[600],
+                                        const SizedBox(width: 14),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                expense.title,
+                                                style: const TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              const SizedBox(height: 3),
+                                              Text(
+                                                '${DateFormat('MMM d, h:mm a').format(expense.date)} • ${expense.category}',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.grey[600],
+                                                ),
+                                              ),
+                                            ],
                                           ),
+                                        ),
+                                        Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.end,
+                                          children: [
+                                            Text(
+                                              '${currentTrip.currency} ${expense.amount.toStringAsFixed(2)}',
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            if (expense.foreignAmount != null &&
+                                                expense.foreignCurrency !=
+                                                    null &&
+                                                expense.foreignCurrency !=
+                                                    currentTrip.currency)
+                                              Text(
+                                                '${expense.foreignCurrency} ${expense.foreignAmount!.toStringAsFixed(2)}',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: Colors.grey[500],
+                                                ),
+                                              ),
+                                          ],
                                         ),
                                       ],
                                     ),
                                   ),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text(
-                                        '${currentTrip.currency} ${expense.amount.toStringAsFixed(2)}',
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      if (expense.foreignAmount != null &&
-                                          expense.foreignCurrency != null &&
-                                          expense.foreignCurrency !=
-                                              currentTrip.currency)
-                                        Text(
-                                          '${expense.foreignCurrency} ${expense.foreignAmount!.toStringAsFixed(2)}',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: Colors.grey[500],
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ],
+                                ),
                               ),
-                            ),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+
+            // TAB 2: Itinerary & Notes View
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).cardColor,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: Colors.grey.withValues(alpha: 0.12),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.info_outline,
+                            color: Colors.blue, size: 22),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Save your travel notes, flight numbers, hotel details, and day-by-day plans here.',
+                            style: TextStyle(
+                                fontSize: 13, color: Colors.grey[700]),
                           ),
                         ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Quick Template Insert Pills
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        ActionChip(
+                          avatar: const Icon(Icons.hotel_outlined, size: 16),
+                          label: const Text('Hotel'),
+                          onPressed: () {
+                            _appendNoteTemplate('\n🏨 Hotel / Stay:\n- Name:\n- Address:\n- Check-in:\n');
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        ActionChip(
+                          avatar: const Icon(Icons.flight_outlined, size: 16),
+                          label: const Text('Flight'),
+                          onPressed: () {
+                            _appendNoteTemplate('\n✈️ Flight / Transit:\n- Flight #:\n- Departure:\n- Arrival:\n');
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        ActionChip(
+                          avatar: const Icon(Icons.today_outlined, size: 16),
+                          label: const Text('Day Plan'),
+                          onPressed: () {
+                            _appendNoteTemplate('\n📅 Day 1:\n- Morning:\n- Afternoon:\n- Evening:\n');
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        ActionChip(
+                          avatar: const Icon(Icons.checklist_outlined, size: 16),
+                          label: const Text('Packing List'),
+                          onPressed: () {
+                            _appendNoteTemplate('\n🎒 Packing List:\n- Passport / NID\n- Charger\n- Medication\n');
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: _notesController,
+                      maxLines: null,
+                      expands: true,
+                      textAlignVertical: TextAlignVertical.top,
+                      decoration: InputDecoration(
+                        hintText: 'Type your itinerary, reminders, or notes here...',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        alignLabelWithHint: true,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      await tripProvider.updateTripNotes(
+                          currentTrip, _notesController.text);
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Itinerary & Notes saved.')),
                       );
                     },
+                    icon: const Icon(Icons.save_outlined),
+                    label: const Text('Save Notes'),
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 48),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
                   ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          _showAddOrEditExpenseSheet(context, tripProvider, currentTrip);
-        },
-        icon: const Icon(Icons.add),
-        label: const Text("Add Expense"),
+                ],
+              ),
+            ),
+          ],
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () {
+            _showAddOrEditExpenseSheet(context, tripProvider, currentTrip);
+          },
+          icon: const Icon(Icons.add),
+          label: const Text("Add Expense"),
+        ),
       ),
     );
+  }
+
+  void _appendNoteTemplate(String text) {
+    final current = _notesController.text;
+    _notesController.text = current.isEmpty ? text.trimLeft() : '$current$text';
   }
 
   // --- Modal Bottom Sheet: Add / Edit Expense ---
@@ -512,7 +682,6 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Drag Handle
                     Center(
                       child: Container(
                         width: 40,
@@ -840,7 +1009,8 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                       controller: budgetController,
                       decoration: InputDecoration(
                         labelText: 'Trip Budget',
-                        prefixIcon: const Icon(Icons.account_balance_wallet_outlined),
+                        prefixIcon:
+                            const Icon(Icons.account_balance_wallet_outlined),
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12)),
                       ),
@@ -867,7 +1037,8 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                         }
                       },
                       items: ['BDT', 'USD', 'EUR', 'GBP', 'INR']
-                          .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                          .map(
+                              (c) => DropdownMenuItem(value: c, child: Text(c)))
                           .toList(),
                     ),
                     const SizedBox(height: 16),
@@ -1089,7 +1260,8 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
               else
                 ...sortedCategories.map((entry) {
                   final catInfo = ExpenseCategory.getCategory(entry.key);
-                  final pct = totalExpense > 0 ? (entry.value / totalExpense) : 0.0;
+                  final pct =
+                      totalExpense > 0 ? (entry.value / totalExpense) : 0.0;
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 6),
                     child: Column(
@@ -1100,7 +1272,8 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                             Icon(catInfo.icon, size: 16, color: catInfo.color),
                             const SizedBox(width: 8),
                             Text(catInfo.name,
-                                style: const TextStyle(fontWeight: FontWeight.w500)),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w500)),
                             const Spacer(),
                             Text(
                               '${trip.currency} ${entry.value.toStringAsFixed(2)} (${(pct * 100).toStringAsFixed(1)}%)',
@@ -1200,7 +1373,8 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
         "Budget: ${trip.currency} ${trip.budget.toStringAsFixed(2)}\n\n";
 
     double total = trip.expenses.fold(0.0, (sum, item) => sum + item.amount);
-    summary += "Total Expenses: ${trip.currency} ${total.toStringAsFixed(2)}\n\n";
+    summary +=
+        "Total Expenses: ${trip.currency} ${total.toStringAsFixed(2)}\n\n";
 
     if (trip.expenses.isNotEmpty) {
       summary += "Expenses Breakdown:\n";
@@ -1209,7 +1383,11 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
             "- ${expense.title} (${expense.category}): ${trip.currency} ${expense.amount.toStringAsFixed(2)}\n";
       }
     } else {
-      summary += "No expenses recorded yet.";
+      summary += "No expenses recorded yet.\n";
+    }
+
+    if (trip.notes != null && trip.notes!.isNotEmpty) {
+      summary += "\nItinerary & Notes:\n${trip.notes}\n";
     }
 
     Share.share(summary, subject: 'Trip Summary: ${trip.name}');
