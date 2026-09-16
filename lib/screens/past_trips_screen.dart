@@ -177,26 +177,44 @@ class _PastTripsScreenState extends State<PastTripsScreen> {
                                   ],
                                 ),
                                 const SizedBox(height: 6),
-                                Row(
+                                Wrap(
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  spacing: 12,
+                                  runSpacing: 4,
                                   children: [
-                                    const Icon(Icons.location_on_outlined,
-                                        size: 15, color: Colors.grey),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      trip.destination,
-                                      style: TextStyle(
-                                          fontSize: 13,
-                                          color: Colors.grey[700]),
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.location_on_outlined,
+                                            size: 15, color: Colors.grey),
+                                        const SizedBox(width: 4),
+                                        ConstrainedBox(
+                                          constraints: const BoxConstraints(
+                                              maxWidth: 160),
+                                          child: Text(
+                                            trip.destination,
+                                            style: TextStyle(
+                                                fontSize: 13,
+                                                color: Colors.grey[700]),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(width: 12),
-                                    const Icon(Icons.calendar_today_outlined,
-                                        size: 14, color: Colors.grey),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      '${DateFormat('MMM d').format(trip.startDate)} - ${DateFormat('MMM d, yyyy').format(trip.endDate)}',
-                                      style: TextStyle(
-                                          fontSize: 13,
-                                          color: Colors.grey[700]),
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.calendar_today_outlined,
+                                            size: 14, color: Colors.grey),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '${DateFormat('MMM d').format(trip.startDate)} - ${DateFormat('MMM d, yyyy').format(trip.endDate)}',
+                                          style: TextStyle(
+                                              fontSize: 13,
+                                              color: Colors.grey[700]),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
@@ -205,23 +223,30 @@ class _PastTripsScreenState extends State<PastTripsScreen> {
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text(
-                                      'Total Spent: ${trip.currency} ${totalSpent.toStringAsFixed(2)}',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                        color: trip.budget > 0 &&
-                                                totalSpent > trip.budget
-                                            ? Colors.red
-                                            : null,
+                                    Flexible(
+                                      child: Text(
+                                        'Total Spent: ${trip.currency} ${totalSpent.toStringAsFixed(2)}',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: trip.budget > 0 &&
+                                                  totalSpent > trip.budget
+                                              ? Colors.red
+                                              : null,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
+                                    const SizedBox(width: 8),
                                     if (trip.budget > 0)
-                                      Text(
-                                        'Budget: ${trip.currency} ${trip.budget.toStringAsFixed(0)}',
-                                        style: TextStyle(
-                                            fontSize: 13,
-                                            color: Colors.grey[600]),
+                                      Flexible(
+                                        child: Text(
+                                          'Budget: ${trip.currency} ${trip.budget.toStringAsFixed(0)}',
+                                          style: TextStyle(
+                                              fontSize: 13,
+                                              color: Colors.grey[600]),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
                                       ),
                                   ],
                                 ),

@@ -282,6 +282,17 @@ class _StartScreenState extends State<StartScreen> {
         title: const Text('Tour Buddy'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.auto_awesome_outlined),
+            tooltip: 'Load Demo Trips',
+            onPressed: () async {
+              await tripProvider.seedSampleTrips(force: true);
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Demo trips loaded successfully!')),
+              );
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.history_rounded),
             tooltip: 'Past Trips',
             onPressed: () {
@@ -391,9 +402,20 @@ class _StartScreenState extends State<StartScreen> {
                     ),
                     TextButton(
                       onPressed: () async {
-                        await tripProvider.signInWithGoogle();
+                        final error = await tripProvider.signInWithGoogle();
                         if (!context.mounted) return;
-                        if (tripProvider.currentUser != null &&
+                        if (error != null && error != 'Sign-in cancelled') {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                error.contains('10') || error.contains('ApiException')
+                                    ? 'Google Sign-in requires SHA-1 certificate in Firebase Console.'
+                                    : 'Sign-in note: $error',
+                              ),
+                              duration: const Duration(seconds: 4),
+                            ),
+                          );
+                        } else if (tripProvider.currentUser != null &&
                             !tripProvider.currentUser!.isAnonymous) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -468,17 +490,41 @@ class _StartScreenState extends State<StartScreen> {
                         style: TextStyle(fontSize: 13, color: Colors.grey[500]),
                       ),
                       const SizedBox(height: 20),
-                      ElevatedButton.icon(
-                        onPressed: () =>
-                            _showCreateTripSheet(context, tripProvider),
-                        icon: const Icon(Icons.add),
-                        label: const Text('Create New Trip'),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 24, vertical: 12),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                        ),
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 12,
+                        runSpacing: 10,
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: () =>
+                                _showCreateTripSheet(context, tripProvider),
+                            icon: const Icon(Icons.add),
+                            label: const Text('Create New Trip'),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 20, vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                            ),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: () async {
+                              await tripProvider.seedSampleTrips(force: true);
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Demo trips loaded!')),
+                              );
+                            },
+                            icon: const Icon(Icons.auto_awesome_outlined),
+                            label: const Text('Load Demo Trips'),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 20, vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -563,24 +609,44 @@ class _StartScreenState extends State<StartScreen> {
                               ],
                             ),
                             const SizedBox(height: 6),
-                            Row(
+                            Wrap(
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              spacing: 12,
+                              runSpacing: 4,
                               children: [
-                                const Icon(Icons.location_on_outlined,
-                                    size: 15, color: Colors.grey),
-                                const SizedBox(width: 4),
-                                Text(
-                                  trip.destination,
-                                  style: TextStyle(
-                                      fontSize: 13, color: Colors.grey[700]),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.location_on_outlined,
+                                        size: 15, color: Colors.grey),
+                                    const SizedBox(width: 4),
+                                    ConstrainedBox(
+                                      constraints:
+                                          const BoxConstraints(maxWidth: 160),
+                                      child: Text(
+                                        trip.destination,
+                                        style: TextStyle(
+                                            fontSize: 13,
+                                            color: Colors.grey[700]),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(width: 12),
-                                const Icon(Icons.calendar_today_outlined,
-                                    size: 14, color: Colors.grey),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '${DateFormat('MMM d').format(trip.startDate)} - ${DateFormat('MMM d, yyyy').format(trip.endDate)}',
-                                  style: TextStyle(
-                                      fontSize: 13, color: Colors.grey[700]),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.calendar_today_outlined,
+                                        size: 14, color: Colors.grey),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${DateFormat('MMM d').format(trip.startDate)} - ${DateFormat('MMM d, yyyy').format(trip.endDate)}',
+                                      style: TextStyle(
+                                          fontSize: 13,
+                                          color: Colors.grey[700]),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
@@ -590,7 +656,8 @@ class _StartScreenState extends State<StartScreen> {
                                 borderRadius: BorderRadius.circular(3),
                                 child: LinearProgressIndicator(
                                   value: (totalSpent /
-                                          trip.budget.clamp(0.01, double.infinity))
+                                          trip.budget
+                                              .clamp(0.01, double.infinity))
                                       .clamp(0.0, 1.0),
                                   minHeight: 5,
                                   backgroundColor: Colors.grey[200],
@@ -606,20 +673,28 @@ class _StartScreenState extends State<StartScreen> {
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text(
-                                    'Spent: ${trip.currency} ${totalSpent.toStringAsFixed(0)}',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: totalSpent > trip.budget
-                                          ? Colors.red
-                                          : Colors.grey[800],
+                                  Flexible(
+                                    child: Text(
+                                      'Spent: ${trip.currency} ${totalSpent.toStringAsFixed(0)}',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: totalSpent > trip.budget
+                                            ? Colors.red
+                                            : Colors.grey[800],
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
-                                  Text(
-                                    'Budget: ${trip.currency} ${trip.budget.toStringAsFixed(0)}',
-                                    style: TextStyle(
-                                        fontSize: 12, color: Colors.grey[600]),
+                                  const SizedBox(width: 8),
+                                  Flexible(
+                                    child: Text(
+                                      'Budget: ${trip.currency} ${trip.budget.toStringAsFixed(0)}',
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[600]),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   ),
                                 ],
                               ),

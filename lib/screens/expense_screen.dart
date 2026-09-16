@@ -337,10 +337,13 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                         ),
                       ),
                       if (sortedExpenses.isNotEmpty)
-                        Text(
-                          'Swipe to delete • Tap to edit',
-                          style:
-                              TextStyle(fontSize: 12, color: Colors.grey[500]),
+                        Flexible(
+                          child: Text(
+                            'Swipe to delete • Tap to edit',
+                            style:
+                                TextStyle(fontSize: 12, color: Colors.grey[500]),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                     ],
                   ),
