@@ -208,11 +208,17 @@ class _PastTripsScreenState extends State<PastTripsScreen> {
                                         const Icon(Icons.calendar_today_outlined,
                                             size: 14, color: Colors.grey),
                                         const SizedBox(width: 4),
-                                        Text(
-                                          '${DateFormat('MMM d').format(trip.startDate)} - ${DateFormat('MMM d, yyyy').format(trip.endDate)}',
-                                          style: TextStyle(
-                                              fontSize: 13,
-                                              color: Colors.grey[700]),
+                                        ConstrainedBox(
+                                          constraints: const BoxConstraints(
+                                              maxWidth: 180),
+                                          child: Text(
+                                            '${DateFormat('MMM d').format(trip.startDate)} - ${DateFormat('MMM d, yyyy').format(trip.endDate)}',
+                                            style: TextStyle(
+                                                fontSize: 13,
+                                                color: Colors.grey[700]),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
                                         ),
                                       ],
                                     ),

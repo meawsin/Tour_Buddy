@@ -282,17 +282,6 @@ class _StartScreenState extends State<StartScreen> {
         title: const Text('Tour Buddy'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.auto_awesome_outlined),
-            tooltip: 'Load Demo Trips',
-            onPressed: () async {
-              await tripProvider.seedSampleTrips(force: true);
-              if (!context.mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Demo trips loaded successfully!')),
-              );
-            },
-          ),
-          IconButton(
             icon: const Icon(Icons.history_rounded),
             tooltip: 'Past Trips',
             onPressed: () {
@@ -313,29 +302,26 @@ class _StartScreenState extends State<StartScreen> {
               );
             },
           ),
-          if (isGoogleUser)
-            PopupMenuButton<String>(
-              icon: CircleAvatar(
-                radius: 14,
-                backgroundColor: Colors.white,
-                child: Text(
-                  (user.displayName ?? 'U').substring(0, 1).toUpperCase(),
-                  style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue),
-                ),
-              ),
-              onSelected: (val) async {
-                if (val == 'signout') {
-                  await tripProvider.signOut();
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Signed out.')),
-                  );
-                }
-              },
-              itemBuilder: (context) => [
+          PopupMenuButton<String>(
+            tooltip: isGoogleUser ? (user.displayName ?? 'Account') : 'More options',
+            onSelected: (val) async {
+              if (val == 'demo') {
+                await tripProvider.seedSampleTrips(force: true);
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                      content: Text('Demo trips loaded successfully!')),
+                );
+              } else if (val == 'signout') {
+                await tripProvider.signOut();
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Signed out.')),
+                );
+              }
+            },
+            itemBuilder: (context) => [
+              if (isGoogleUser) ...[
                 PopupMenuItem(
                   enabled: false,
                   child: Text(
@@ -343,18 +329,49 @@ class _StartScreenState extends State<StartScreen> {
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
+                const PopupMenuDivider(),
+              ],
+              const PopupMenuItem(
+                value: 'demo',
+                child: Row(
+                  children: [
+                    Icon(Icons.auto_awesome_outlined, size: 18),
+                    SizedBox(width: 10),
+                    Text('Load Demo Trips'),
+                  ],
+                ),
+              ),
+              if (isGoogleUser)
                 const PopupMenuItem(
                   value: 'signout',
                   child: Row(
                     children: [
-                      Icon(Icons.logout, size: 18),
-                      SizedBox(width: 8),
-                      Text('Sign Out'),
+                      Icon(Icons.logout, size: 18, color: Colors.redAccent),
+                      SizedBox(width: 10),
+                      Text('Sign Out', style: TextStyle(color: Colors.redAccent)),
                     ],
                   ),
                 ),
-              ],
+            ],
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: isGoogleUser
+                  ? CircleAvatar(
+                      radius: 14,
+                      backgroundColor: Colors.white,
+                      child: Text(
+                        (user.displayName ?? 'U')
+                            .substring(0, 1)
+                            .toUpperCase(),
+                        style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue),
+                      ),
+                    )
+                  : const Icon(Icons.more_vert),
             ),
+          ),
         ],
       ),
       body: CustomScrollView(
@@ -436,13 +453,17 @@ class _StartScreenState extends State<StartScreen> {
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Active & Upcoming',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  const Expanded(
+                    child: Text(
+                      'Active & Upcoming',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                  if (pastTrips.isNotEmpty)
+                  if (pastTrips.isNotEmpty) ...[
+                    const SizedBox(width: 8),
                     InkWell(
                       onTap: () {
                         Navigator.push(
@@ -460,6 +481,7 @@ class _StartScreenState extends State<StartScreen> {
                         ),
                       ),
                     ),
+                  ],
                 ],
               ),
             ),
@@ -640,11 +662,17 @@ class _StartScreenState extends State<StartScreen> {
                                     const Icon(Icons.calendar_today_outlined,
                                         size: 14, color: Colors.grey),
                                     const SizedBox(width: 4),
-                                    Text(
-                                      '${DateFormat('MMM d').format(trip.startDate)} - ${DateFormat('MMM d, yyyy').format(trip.endDate)}',
-                                      style: TextStyle(
-                                          fontSize: 13,
-                                          color: Colors.grey[700]),
+                                    ConstrainedBox(
+                                      constraints:
+                                          const BoxConstraints(maxWidth: 180),
+                                      child: Text(
+                                        '${DateFormat('MMM d').format(trip.startDate)} - ${DateFormat('MMM d, yyyy').format(trip.endDate)}',
+                                        style: TextStyle(
+                                            fontSize: 13,
+                                            color: Colors.grey[700]),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
                                   ],
                                 ),
