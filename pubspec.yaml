@@ -33,3 +33,9 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/TourBuddylogo.png"
+  min_sdk_android: 23
