@@ -47,6 +47,38 @@
 
 ---
 
+## Project Structure & Architecture
+
+```text
+lib/
+├── firebase_options.dart      # Firebase initialization configuration
+├── main.dart                  # App entry point, theme configuration, and provider bindings
+├── theme_provider.dart        # Light and dark theme state management
+├── models/
+│   ├── trip.dart              # Core Trip model (dates, budget, destination, markdown notes, serialization)
+│   ├── expense.dart           # Typed Expense entity (amount, category, foreign currency, timestamps)
+│   └── expense_category.dart  # Category taxonomy (Food, Transport, Stay, etc.) with icons & color palette
+├── providers/
+│   └── trip_provider.dart     # Central state manager, Firestore synchronization & sample data seeder
+├── screens/
+│   ├── start_screen.dart      # Home dashboard with Active & Upcoming trips, date-range trip planner
+│   ├── expense_screen.dart    # Dual-tab screen: Expenses ledger (insights/sorting) & Itinerary notebook
+│   ├── past_trips_screen.dart # Archive of past journeys with budget metrics and trip management
+│   └── settings_screen.dart   # App settings, currency preferences, and theme toggle
+└── services/
+    └── currency_service.dart  # ExchangeRate-API integration with offline caching in SharedPreferences
+
+test/
+└── widget_test.dart           # Unit test suite verifying models, serialization & currency conversion
+
+assets/
+└── images/
+    ├── TourBuddylogo.png      # Tour Buddy logo artwork and launcher icon source
+    └── google_logo.png        # Google Cloud Sync branding asset
+```
+
+---
+
 ## Getting Started
 
 ### Prerequisites
