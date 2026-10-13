@@ -1,80 +1,103 @@
 # Tour Buddy
 
-**Tour Buddy** is a modern, offline-first travel companion and budget management application built with Flutter and Firebase. Designed for travelers who want effortless expense tracking, itinerary planning, and seamless multi-device synchronization without intrusive clutter.
+**Tour Buddy** is a modern, offline-first travel companion and budget management application built with Flutter and Firebase. Engineered for travelers seeking effortless multi-currency expense tracking, interactive itinerary planning, and seamless multi-device synchronization without clutter or visual noise.
 
 ---
 
-## Key Features
+## App Showcase
 
-### Trip Planning & Budgeting
-* **Multi-Trip Management**: Organize trips into **Active & Upcoming** and **Past Trips** with automatic date-based archiving.
-* **Date Range Picker**: Select departure and return dates seamlessly with an integrated calendar picker.
-* **Multi-Currency Support**: Budget and track expenses in BDT, USD, EUR, GBP, or INR with live currency conversion and offline rate caching.
-* **Visual Budget Progress**: Dynamic progress meters that change color as you approach or exceed your budget limits.
+Captured on a physical Google Pixel 6 Pro running Android 14.
 
-### Expense Tracking & Categorization
-* **Visual Category Badges**: Color-coded categorization across **Food**, **Transport**, **Stay**, **Shopping**, **Activities**, and **Other**.
-* **Flexible Foreign Currencies**: Log expenses in local foreign currencies while Tour Buddy automatically converts and tracks against your home trip budget.
-* **Fluid Gestures**: Tap any expense to open the edit sheet; swipe to delete with an immediate **Undo** option.
-* **Flexible Sorting**: Sort transactions by newest first, oldest first, highest amount, lowest amount, or category.
+| Dashboard & Overview | Plan New Trip |
+| :---: | :---: |
+| ![Dashboard](assets/screenshots/01_dashboard.png) | ![Plan New Trip](assets/screenshots/02_plan_trip_sheet.png) |
+| **Active & Upcoming Journeys**<br>Visual budget progress meters and spending telemetry | **Trip Planner Modal**<br>Date-range calendar, custom budget limits, and currency selection |
 
-### Dual-Tab Travel Companion
-* **Expenses Tab**: Granular transaction ledger, category distribution, and live spending metrics.
-* **Itinerary & Notes Tab**: Dedicated markdown travel notebook with quick-insert templates for **Hotel Reservations**, **Flight Details**, **Daily Itinerary**, and **Packing Checklists**.
+| Expenses Ledger | Add & Convert Expense |
+| :---: | :---: |
+| ![Expenses Ledger](assets/screenshots/03_expenses_ledger.png) | ![Add Expense](assets/screenshots/04_add_expense_sheet.png) |
+| **Dual-Tab Travel Ledger**<br>Multi-criteria sorting, category badges, and quick-delete actions | **Smart Expense Logging**<br>Foreign currency auto-conversion and custom date/time picker |
 
-### Offline-First Architecture & Cloud Sync
-* **Offline Exchange Rates**: Exchange rates are cached locally in `SharedPreferences`—convert currencies even in airplane mode or remote areas.
-* **Offline Persistence**: Full read and write capabilities without an active network; automatically synchronizes with Cloud Firestore when back online.
-* **Google Cloud Backup**: Optional, non-intrusive Google Sign-In to back up and sync your trips across all your Android devices.
+| Trip Analytics & Insights | Markdown Itinerary Notebook |
+| :---: | :---: |
+| ![Trip Insights](assets/screenshots/05_trip_insights.png) | ![Itinerary & Notes](assets/screenshots/06_itinerary_notes.png) |
+| **Spending Breakdown**<br>Daily average burn rate and category distribution meters | **Itinerary Planner**<br>Fast-insert reservation templates and markdown travel notebook |
 
-### Thoughtful Human Design
-* **Zero Emoji Clutter**: Professional, clean typography using Google Fonts and native Material Design 3 guidelines.
-* **Adaptive Modal Sheets**: Bottom sheets designed for one-handed operation with built-in keyboard avoidance.
-* **Overflow Resilience**: Responsive layouts constrained with flexible text wrappers that adapt to any screen size and font scaling settings.
+| Past Trips Archive | Settings & Customization |
+| :---: | :---: |
+| ![Past Trips](assets/screenshots/07_past_trips.png) | ![Settings](assets/screenshots/08_settings.png) |
+| **Travel Archive**<br>Automatic date-based archiving and historical budget metrics | **Preferences & Accessibility**<br>Dark/Light mode switch, dynamic font-size slider, and currency configuration |
 
 ---
 
-## Tech Stack
+## Key Features & Capabilities
 
-| Component | Technology |
+### Trip Planning & Budget Management
+* **Multi-Trip Lifecycle Management**: Organizes trips into **Active & Upcoming** and **Past Trips** with automated date-based archiving.
+* **Integrated Date-Range Calendar**: Select departure and return dates with a single fluid calendar widget.
+* **Non-Negative Budget Safeguards**: Validates input to ensure budgets and logged costs are non-negative.
+* **Multi-Currency Defaults**: Create trips in any supported home currency (BDT, USD, EUR, GBP, INR) inheriting from your global settings preference.
+* **Dynamic Budget Gauges**: Real-time progress bars provide immediate visual feedback as spending approaches or exceeds the allocated ceiling.
+
+### Expense Tracking & Intelligence
+* **Six Structured Categories**: Categorization across **Food**, **Transport**, **Accommodation** (with automatic alias matching for *Stay* and *Hotel*), **Shopping**, **Activities**, and **Other**.
+* **Foreign Currency Conversion**: Log expenses in foreign currencies while on the road; the app automatically calculates and logs the converted amount against your trip's home currency.
+* **Interactive Date & Time Picker**: Record transactions with precise historical or scheduled timestamps rather than being limited to the current instant.
+* **Multi-Criteria Sorting**: Sort transactions by newest first, oldest first, highest amount, lowest amount, or category.
+* **Swipe-to-Delete with Undo**: Delete transactions with a horizontal swipe, backed by an immediate SnackBar undo action.
+* **Trip Insights**: View your average daily burn rate, total spending summary, and an itemized category expenditure breakdown.
+
+### Travel Itinerary & Notes
+* **Markdown Travel Notebook**: Keep flight confirmations, hotel addresses, packing checklists, and daily schedules alongside your finances.
+* **One-Tap Template Pills**: Quick-insert structured templates:
+  * `+ Hotel`: Check-in, check-out, confirmation number, and address fields.
+  * `+ Flight`: Airline, flight number, departure, arrival, and terminal details.
+  * `+ Day Plan`: Structured morning, afternoon, and evening agenda.
+  * `+ Checklist`: Pre-formatted interactive markdown checklists.
+* **Live Auto-Save**: Itinerary notes persist automatically to the trip model without requiring manual save actions.
+
+### Offline-First Architecture & Cloud Synchronization
+* **Cached Foreign Exchange Rates**: Real-time exchange rates from ExchangeRate-API are cached in local persistent storage (`SharedPreferences`), ensuring offline conversions continue working seamlessly during flights or in remote destinations.
+* **Local Persistence with Cloud Sync**: Full read and write functionality when completely disconnected from the internet. When connectivity is restored, data synchronizes with Cloud Firestore.
+* **Non-Intrusive Google Cloud Backup**: Optional Google Sign-In lets travelers back up their trips to Firebase and restore them across multiple devices.
+
+### Accessibility & Material 3 Design
+* **Clean Typography**: Distraction-free typography with Google Fonts and native Material Design 3 components.
+* **Adaptive Font Scaling**: Built-in font scaling slider allows real-time UI text adjustments for enhanced readability.
+* **Theme Support**: High-contrast Dark Mode and clean Light Mode.
+* **Keyboard-Aware Modal Sheets**: Bottom sheets intelligently adjust padding and scrolling when on-screen virtual keyboards appear.
+
+---
+
+## Tech Stack & Architecture
+
+| Component | Implementation |
 |---|---|
-| **Framework** | Flutter (Dart SDK ^3.5.3) |
-| **State Management** | Provider |
-| **Backend & Cloud** | Firebase Authentication & Cloud Firestore |
+| **Framework** | Flutter (Dart SDK `^3.5.3`) |
+| **State Architecture** | Provider (`TripProvider`, `ThemeProvider`) |
+| **Cloud Backend** | Firebase Authentication & Cloud Firestore |
 | **Local Storage** | SharedPreferences |
-| **Currency API** | ExchangeRate-API v6 |
-| **Platform** | Android (minSdk 23) & iOS |
-
----
-
-## Project Structure & Architecture
+| **Exchange Rate Service** | ExchangeRate-API v6 with local rate caching |
+| **Platform Compatibility** | Android (minSdk 23+, Android 6.0 through Android 15+) & iOS |
 
 ```text
 lib/
 ├── firebase_options.dart      # Firebase initialization configuration
-├── main.dart                  # App entry point, theme configuration, and provider bindings
-├── theme_provider.dart        # Light and dark theme state management
+├── main.dart                  # Application entry point, theme setup, and MultiProvider bindings
+├── theme_provider.dart        # Theme mode, typography scaling, and default currency state
 ├── models/
 │   ├── trip.dart              # Core Trip model (dates, budget, destination, markdown notes, serialization)
-│   ├── expense.dart           # Typed Expense entity (amount, category, foreign currency, timestamps)
-│   └── expense_category.dart  # Category taxonomy (Food, Transport, Stay, etc.) with icons & color palette
+│   ├── expense.dart           # Expense entity (amount, category, foreign currency rate, timestamp)
+│   └── expense_category.dart  # Category taxonomy with icons, colors, and keyword alias resolution
 ├── providers/
-│   └── trip_provider.dart     # Central state manager, Firestore synchronization & sample data seeder
+│   └── trip_provider.dart     # Central data controller, Firestore offline queue & sample data seeder
 ├── screens/
-│   ├── start_screen.dart      # Home dashboard with Active & Upcoming trips, date-range trip planner
-│   ├── expense_screen.dart    # Dual-tab screen: Expenses ledger (insights/sorting) & Itinerary notebook
-│   ├── past_trips_screen.dart # Archive of past journeys with budget metrics and trip management
-│   └── settings_screen.dart   # App settings, currency preferences, and theme toggle
+│   ├── start_screen.dart      # Home dashboard, active trip cards, and trip creation sheet
+│   ├── expense_screen.dart    # Dual-tab view: Expenses ledger, Insights dialog, and Itinerary notebook
+│   ├── past_trips_screen.dart # Archived trips list with historical budget metrics
+│   └── settings_screen.dart   # Appearance settings, font scaling slider, and default currency selector
 └── services/
-    └── currency_service.dart  # ExchangeRate-API integration with offline caching in SharedPreferences
-
-test/
-└── widget_test.dart           # Unit test suite verifying models, serialization & currency conversion
-
-assets/
-└── images/
-    ├── TourBuddylogo.png      # Tour Buddy logo artwork and launcher icon source
-    └── google_logo.png        # Google Cloud Sync branding asset
+    └── currency_service.dart  # Multi-currency exchange rate fetcher with SharedPreferences caching
 ```
 
 ---
@@ -83,8 +106,8 @@ assets/
 
 ### Prerequisites
 * [Flutter SDK](https://docs.flutter.dev/get-started/install) (3.5.3 or higher)
-* Android Studio / VS Code with Flutter extensions
-* Android SDK (API 23+) or connected physical device
+* [Android SDK](https://developer.android.com/studio) (API level 23 or higher)
+* Physical Android device or Android Virtual Device (AVD)
 
 ### Installation
 
@@ -99,33 +122,49 @@ assets/
    flutter pub get
    ```
 
-3. **Firebase Setup** (Optional for local testing):
-   * Place your `google-services.json` inside `android/app/`.
-   * Add your debug SHA-1 and SHA-256 certificate fingerprints in Firebase Console.
+3. **Firebase Configuration** *(Required for multi-device cloud sync)*:
+   * Download `google-services.json` from your Firebase Console project.
+   * Place the file in `android/app/google-services.json`.
+   * Add your development and release SHA-1 / SHA-256 certificate fingerprints under your Android app in Firebase Console.
 
-4. **Run the application**:
+4. **Launch the application**:
    ```bash
    flutter run
    ```
 
-5. **Run tests**:
-   ```bash
-   flutter test
-   ```
+---
+
+## Quality Assurance & Testing
+
+Tour Buddy includes automated unit and widget test suites covering model serialization, copyWith immutability, date formatting, daily burn rate calculations, category alias resolution, and all transaction sorting algorithms.
+
+Run the test suite:
+```bash
+flutter test
+```
+
+Perform static analysis:
+```bash
+flutter analyze
+```
 
 ---
 
-## Build Standalone Release APK
+## Building Standalone Release APK
 
-To generate a production-ready, standalone Android APK:
+To generate an optimized, standalone release APK for distribution or sideloading:
+
 ```bash
-flutter build apk --release
+flutter build apk --release --android-skip-build-dependency-validation
 ```
-The output APK will be located at:
-`build/app/outputs/flutter-apk/app-release.apk`
+
+The compiled APK will be generated at:
+```text
+build/app/outputs/flutter-apk/app-release.apk
+```
 
 ---
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

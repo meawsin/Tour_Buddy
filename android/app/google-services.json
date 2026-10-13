@@ -9,6 +9,58 @@
       "client_info": {
         "mobilesdk_app_id": "1:619828801275:android:c79a7c3ba0e2f10a7a4a5e",
         "android_client_info": {
+          "package_name": "com.tourbuddy.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "619828801275-f7bts66g18m5buasjncq8lribujgtj99.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.tourbuddy.app",
+            "certificate_hash": "41621d96b3d8abb5671ec51192a0452077319d87"
+          }
+        },
+        {
+          "client_id": "619828801275-q4f6otepl0qrvm4h2o49jvcgsio5llha.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.tourbuddy.app",
+            "certificate_hash": "5d8e0750bc76cee00e3b6aa75962ffd03239470f"
+          }
+        },
+        {
+          "client_id": "619828801275-gc5achcpaf75u1l4l0ur3crjifi2bfc5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAqXR2e8FUZ8KnFZ7Yi5C-UXXfW3tmbQhc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "619828801275-gc5achcpaf75u1l4l0ur3crjifi2bfc5.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "619828801275-6thcfbv83c8ugcqhvbimlc88509qsdim.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.tourBuddy"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:619828801275:android:c79a7c3ba0e2f10a7a4a5e",
+        "android_client_info": {
           "package_name": "com.example.tour_buddy"
         }
       },

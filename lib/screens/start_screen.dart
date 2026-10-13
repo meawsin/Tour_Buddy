@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import '../providers/trip_provider.dart';
 import '../models/trip.dart';
+import '../theme_provider.dart';
 import 'expense_screen.dart';
 import 'past_trips_screen.dart';
 import 'settings_screen.dart';
@@ -16,14 +17,15 @@ class StartScreen extends StatefulWidget {
 }
 
 class _StartScreenState extends State<StartScreen> {
-  void _showCreateTripSheet(BuildContext context, TripProvider tripProvider) {
+  void _showCreateTripSheet(BuildContext context, TripProvider tripProvider,
+      {String defaultCurrency = 'BDT'}) {
     final tripNameController = TextEditingController();
     final destinationController = TextEditingController();
     final budgetController = TextEditingController();
 
     DateTime startDate = DateTime.now();
     DateTime endDate = DateTime.now().add(const Duration(days: 7));
-    String selectedCurrency = 'BDT';
+    String selectedCurrency = defaultCurrency;
 
     showModalBottomSheet(
       context: context,
@@ -212,13 +214,22 @@ class _StartScreenState extends State<StartScreen> {
                           return;
                         }
 
+                        final budget = double.tryParse(budgetController.text.trim()) ?? 0.0;
+                        if (budget < 0) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Budget cannot be negative.')),
+                          );
+                          return;
+                        }
+
                         final newTrip = Trip(
                           id: const Uuid().v4(),
                           name: name,
                           destination: dest,
                           startDate: startDate,
                           endDate: endDate,
-                          budget: double.tryParse(budgetController.text) ?? 0.0,
+                          budget: budget,
                           currency: selectedCurrency,
                           expenses: [],
                         );
@@ -257,6 +268,7 @@ class _StartScreenState extends State<StartScreen> {
   @override
   Widget build(BuildContext context) {
     final tripProvider = Provider.of<TripProvider>(context);
+    final themeProvider = Provider.of<ThemeProvider>(context);
     final today = DateTime.now();
     final todayDateOnly = DateTime(today.year, today.month, today.day);
 
@@ -518,8 +530,9 @@ class _StartScreenState extends State<StartScreen> {
                         runSpacing: 10,
                         children: [
                           ElevatedButton.icon(
-                            onPressed: () =>
-                                _showCreateTripSheet(context, tripProvider),
+                            onPressed: () => _showCreateTripSheet(
+                                context, tripProvider,
+                                defaultCurrency: themeProvider.appCurrency),
                             icon: const Icon(Icons.add),
                             label: const Text('Create New Trip'),
                             style: ElevatedButton.styleFrom(
@@ -751,7 +764,8 @@ class _StartScreenState extends State<StartScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showCreateTripSheet(context, tripProvider),
+        onPressed: () => _showCreateTripSheet(context, tripProvider,
+            defaultCurrency: themeProvider.appCurrency),
         icon: const Icon(Icons.add),
         label: const Text('New Trip'),
       ),

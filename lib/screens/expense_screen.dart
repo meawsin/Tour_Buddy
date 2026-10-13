@@ -662,6 +662,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
         ? existingExpense.foreignCurrency!
         : 'USD';
     bool showCurrencyConverter = isEditing && existingExpense.foreignAmount != null;
+    DateTime expenseDate = isEditing ? existingExpense.date : DateTime.now();
 
     showModalBottomSheet(
       context: context,
@@ -862,6 +863,59 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                       ),
                     ],
 
+                    const SizedBox(height: 14),
+
+                    // Date & Time Selector Tile
+                    InkWell(
+                      onTap: () async {
+                        final pickedDate = await showDatePicker(
+                          context: context,
+                          initialDate: expenseDate,
+                          firstDate: DateTime(2000),
+                          lastDate: DateTime(2101),
+                        );
+                        if (pickedDate != null) {
+                          if (!context.mounted) return;
+                          final pickedTime = await showTimePicker(
+                            context: context,
+                            initialTime: TimeOfDay.fromDateTime(expenseDate),
+                          );
+                          setSheetState(() {
+                            expenseDate = DateTime(
+                              pickedDate.year,
+                              pickedDate.month,
+                              pickedDate.day,
+                              pickedTime?.hour ?? expenseDate.hour,
+                              pickedTime?.minute ?? expenseDate.minute,
+                            );
+                          });
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade400),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.calendar_today_outlined, size: 18),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                DateFormat('MMM d, yyyy  h:mm a')
+                                    .format(expenseDate),
+                                style: const TextStyle(
+                                    fontSize: 14, fontWeight: FontWeight.w500),
+                              ),
+                            ),
+                            const Icon(Icons.edit, size: 16),
+                          ],
+                        ),
+                      ),
+                    ),
+
                     const SizedBox(height: 24),
 
                     // Submit Button
@@ -904,25 +958,36 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                           finalAmount += foreignAmount;
                         }
 
+                        if (!sheetContext.mounted) return;
+                        if (finalAmount <= 0) {
+                          ScaffoldMessenger.of(sheetContext).showSnackBar(
+                            const SnackBar(
+                                content: Text(
+                                    'Please enter an amount greater than zero.')),
+                          );
+                          return;
+                        }
+
                         if (isEditing) {
                           final updated = existingExpense.copyWith(
                             title: title,
                             amount: finalAmount,
                             category: selectedCategory,
+                            date: expenseDate,
                             foreignAmount: foreignAmount,
                             foreignCurrency: foreignAmount != null
                                 ? foreignCurrency
                                 : null,
                           );
                           await tripProvider.updateExpenseInCurrentTrip(
-                              trip, updated);
+                               trip, updated);
                         } else {
                           final newExpense = Expense(
                             id: const Uuid().v4(),
                             title: title,
                             amount: finalAmount,
                             category: selectedCategory,
-                            date: DateTime.now(),
+                            date: expenseDate,
                             foreignAmount: foreignAmount,
                             foreignCurrency: foreignAmount != null
                                 ? foreignCurrency
@@ -1103,9 +1168,20 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
 
                     ElevatedButton(
                       onPressed: () async {
+                        final parsedBudget =
+                            double.tryParse(budgetController.text.trim()) ??
+                                trip.budget;
+                        if (parsedBudget < 0) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Budget cannot be negative.')),
+                          );
+                          return;
+                        }
+
                         await tripProvider.updateCurrentTrip(
                           trip: trip,
-                          budget: double.tryParse(budgetController.text),
+                          budget: parsedBudget,
                           currency: selectedCurrency,
                           startDate: startDate,
                           endDate: endDate,

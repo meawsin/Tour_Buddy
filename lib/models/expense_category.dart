@@ -45,8 +45,14 @@ class ExpenseCategory {
   ];
 
   static ExpenseCategory getCategory(String? name) {
+    final search = (name ?? '').trim().toLowerCase();
     return defaultCategories.firstWhere(
-      (cat) => cat.name.toLowerCase() == (name ?? '').toLowerCase(),
+      (cat) {
+        final catName = cat.name.toLowerCase();
+        if (catName == search) return true;
+        if ((search == 'stay' || search == 'hotel') && catName == 'accommodation') return true;
+        return false;
+      },
       orElse: () => defaultCategories.last,
     );
   }
