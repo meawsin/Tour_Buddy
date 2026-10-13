@@ -1,6 +1,21 @@
 # Tour Buddy
 
+[![Download APK](https://img.shields.io/badge/Download-Release%20APK%20(v2.0)-2ea44f?style=for-the-badge&logo=android&logoColor=white)](https://github.com/meawsin/Tour_Buddy/releases/download/v2.0/app-release.apk)
+[![Latest Release](https://img.shields.io/badge/Release-v2.0-blue?style=for-the-badge&logo=github)](https://github.com/meawsin/Tour_Buddy/releases/latest)
+[![Platform](https://img.shields.io/badge/Platform-Android%206.0+-lightgrey?style=for-the-badge&logo=android)](https://github.com/meawsin/Tour_Buddy)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
+
 **Tour Buddy** is a modern, offline-first travel companion and budget management application built with Flutter and Firebase. Engineered for travelers seeking effortless multi-currency expense tracking, interactive itinerary planning, and seamless multi-device synchronization without clutter or visual noise.
+
+---
+
+## Direct Download & Quick Install
+
+You can install Tour Buddy directly on your Android device without waiting for the Google Play Store:
+
+* **[Download Latest APK (v2.0)](https://github.com/meawsin/Tour_Buddy/releases/download/v2.0/app-release.apk)** (Standalone Release Binary, 25.9 MB)
+* Once downloaded, open the notification or file manager and tap **Install**.
+* If prompted, enable *"Install unknown apps"* for your browser.
 
 ---
 
